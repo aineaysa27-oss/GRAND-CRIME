@@ -1,0 +1,2195 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>ওপেন ওয়ার্ল্ড ৩ডি শহর</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-touch-callout: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #0b1120;
+      touch-action: none;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    #game-canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      touch-action: none;
+    }
+
+    #loader {
+      position: fixed;
+      inset: 0;
+      background: #090e1a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      color: #e2e8f0;
+      z-index: 100;
+      transition: opacity 0.4s ease;
+    }
+
+    .spinner {
+      width: 44px;
+      height: 44px;
+      border: 4px solid rgba(56, 189, 248, 0.2);
+      border-top-color: #38bdf8;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    #damage-flash {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: radial-gradient(circle, transparent 50%, rgba(220, 38, 38, 0.65) 100%);
+      opacity: 0;
+      transition: opacity 0.18s ease;
+      z-index: 15;
+    }
+
+    #sleep-fade {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background: #02040a;
+      opacity: 0;
+      transition: opacity 0.7s ease;
+      z-index: 25;
+    }
+
+    .glass-btn {
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.45);
+      background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.28), rgba(148, 163, 184, 0.16));
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      color: #ffffff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+      cursor: pointer;
+      touch-action: none;
+      transition: transform 0.08s ease;
+    }
+
+    .glass-btn svg {
+      fill: #ffffff;
+      pointer-events: none;
+    }
+
+    .glass-btn span {
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      pointer-events: none;
+    }
+
+    .glass-btn.pressed {
+      transform: scale(0.9);
+      background: radial-gradient(circle at 30% 25%, rgba(56, 189, 248, 0.65), rgba(37, 99, 235, 0.45));
+    }
+
+    /* পায়ে হাঁটার কন্ট্রোল */
+    #joystick-zone {
+      position: fixed;
+      left: 26px;
+      bottom: 26px;
+      width: 136px;
+      height: 136px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.08) 0%, rgba(255, 255, 255, 0.22) 100%);
+      border: 2px solid rgba(255, 255, 255, 0.38);
+      box-shadow: 0 6px 22px rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      touch-action: none;
+    }
+
+    #joystick-knob {
+      width: 56px;
+      height: 56px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 32% 30%, #ffffff 0%, #cbd5e1 70%, #94a3b8 100%);
+      box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+      pointer-events: none;
+      transform: translate(0px, 0px);
+    }
+
+    #foot-actions {
+      position: fixed;
+      right: 26px;
+      bottom: 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      z-index: 30;
+      touch-action: none;
+    }
+
+    #fight-btn, #jump-btn { width: 84px; height: 84px; gap: 2px; }
+    #fight-btn svg, #jump-btn svg { width: 34px; height: 34px; }
+    #jump-btn span { font-size: 12px; }
+    #fight-btn.pressed {
+      background: radial-gradient(circle at 30% 25%, rgba(248, 113, 113, 0.68), rgba(220, 38, 38, 0.45));
+    }
+
+    #drive-enter-btn {
+      position: fixed;
+      right: 122px;
+      bottom: 34px;
+      width: 72px;
+      height: 72px;
+      display: none;
+      z-index: 30;
+    }
+    #drive-enter-btn.visible { display: flex; }
+    #drive-enter-btn svg { width: 28px; height: 28px; }
+    #drive-enter-btn span { font-size: 11px; }
+
+    /* গাড়ি চালানোর কন্ট্রোল */
+    #car-steer-controls {
+      position: fixed;
+      left: 26px;
+      bottom: 28px;
+      display: none;
+      gap: 18px;
+      z-index: 32;
+      touch-action: none;
+    }
+    #car-steer-controls.visible { display: flex; }
+    .steer-btn { width: 84px; height: 84px; }
+    .steer-btn svg { width: 40px; height: 40px; }
+
+    #car-pedal-controls {
+      position: fixed;
+      right: 26px;
+      bottom: 24px;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+      z-index: 32;
+      touch-action: none;
+    }
+    #car-pedal-controls.visible { display: flex; }
+    #car-exit-btn { width: 72px; height: 72px; gap: 2px; }
+    #car-exit-btn svg { width: 28px; height: 28px; }
+    #car-exit-btn span { font-size: 11px; }
+    .pedal-btn { width: 84px; height: 84px; }
+    .pedal-btn svg { width: 40px; height: 40px; }
+
+    /* চায়ের দোকান ও আলমারির UI */
+    .prompt-pill {
+      position: fixed;
+      left: 50%;
+      bottom: 36px;
+      transform: translateX(-50%);
+      padding: 12px 22px;
+      border-radius: 999px;
+      border: 2px solid rgba(255, 255, 255, 0.5);
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      z-index: 35;
+      cursor: pointer;
+    }
+    .prompt-pill.visible { display: flex; }
+
+    #tea-sit-btn { background: linear-gradient(135deg, #d97706, #b45309); }
+    #wardrobe-ask-btn { background: linear-gradient(135deg, #2563eb, #1d4ed8); }
+
+    .choice-panel {
+      position: fixed;
+      left: 50%;
+      bottom: 30px;
+      transform: translateX(-50%);
+      display: none;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      z-index: 38;
+      max-width: 92vw;
+      background: rgba(15, 23, 42, 0.88);
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.22);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.55);
+    }
+    .choice-panel.visible { display: flex; }
+
+    .choice-btn {
+      padding: 11px 16px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+    .choice-btn:active { transform: scale(0.94); }
+
+    .btn-green { background: linear-gradient(135deg, #10b981, #059669); }
+    .btn-red { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+    .btn-blue { background: linear-gradient(135deg, #2563eb, #1e40af); }
+    .btn-sky { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+    .btn-dragon { background: linear-gradient(135deg, #1e3a8a, #0891b2); }
+    .btn-gray { background: linear-gradient(135deg, #475569, #334155); }
+  </style>
+</head>
+<body>
+
+  <div id="loader">
+    <div class="spinner"></div>
+    <div id="loader-text">ওপেন ওয়ার্ল্ড শহর লোড হচ্ছে...</div>
+  </div>
+
+  <div id="damage-flash"></div>
+  <div id="sleep-fade"></div>
+
+  <!-- পায়ে হাঁটার কন্ট্রোল -->
+  <div id="joystick-zone"><div id="joystick-knob"></div></div>
+
+  <button id="drive-enter-btn" class="glass-btn" aria-label="Drive">
+    <svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+    <span>DRIVE</span>
+  </button>
+
+  <div id="foot-actions">
+    <button id="fight-btn" class="glass-btn" aria-label="Fight">
+      <svg viewBox="0 0 24 24"><path d="M18.5 7.5c-.6 0-1.15.22-1.58.58A2.48 2.48 0 0 0 14.5 6.5c-.62 0-1.19.23-1.62.61A2.48 2.48 0 0 0 10.5 6c-.66 0-1.26.26-1.7.68A2.47 2.47 0 0 0 7 6c-1.38 0-2.5 1.12-2.5 2.5v4.6c0 1.48.62 2.9 1.71 3.91l1.29 1.19V21h9v-2.4l1.55-1.45c1.24-1.15 1.95-2.77 1.95-4.47V10c0-1.38-1.12-2.5-2.5-2.5zm-7.5 5.25H7.25c-.41 0-.75-.34-.75-.75s.34-.75.75-.75H11c.41 0 .75.34.75.75s-.34.75-.75.75z"/></svg>
+    </button>
+    <button id="jump-btn" class="glass-btn" aria-label="Jump">
+      <svg viewBox="0 0 24 24"><path d="M13.5 5.5c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm-3.6 8.4l-1.9 6.6 2.1.6 1.7-5.6 2.4 2.1V21h2v-4.6l-2.6-2.4.8-3.8c1.1 1.3 2.8 2.2 4.7 2.2v-2c-1.7 0-3.2-.9-4-2.3l-1-1.6c-.4-.6-1.1-1-1.9-1-.3 0-.6.1-.9.2L7 7.8V12h2V9.1l1.7-.7-.8 5.5z"/></svg>
+      <span>JUMP</span>
+    </button>
+  </div>
+
+  <!-- গাড়ি চালানোর কন্ট্রোল -->
+  <div id="car-steer-controls">
+    <button id="btn-steer-left" class="glass-btn steer-btn" aria-label="Left">
+      <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+    </button>
+    <button id="btn-steer-right" class="glass-btn steer-btn" aria-label="Right">
+      <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
+    </button>
+  </div>
+
+  <div id="car-pedal-controls">
+    <button id="car-exit-btn" class="glass-btn" aria-label="Exit Car">
+      <svg viewBox="0 0 24 24"><path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.5 16c-.83 0-1.5-.67-1.5-1.5S5.67 13 6.5 13s1.5.67 1.5 1.5S7.33 16 6.5 16zm11 0c-.83 0-1.5-.67-1.5-1.5s.67-1.5 1.5-1.5 1.5.67 1.5 1.5-.67 1.5-1.5 1.5zM5 11l1.5-4.5h11L19 11H5z"/></svg>
+      <span>EXIT</span>
+    </button>
+    <button id="btn-gas" class="glass-btn pedal-btn" aria-label="Gas">
+      <svg viewBox="0 0 24 24"><path d="M4 12l1.41 1.41L11 7.83V20h2V7.83l5.58 5.59L20 12l-8-8-8 8z"/></svg>
+    </button>
+    <button id="btn-brake" class="glass-btn pedal-btn" aria-label="Brake">
+      <svg viewBox="0 0 24 24"><path d="M20 12l-1.41-1.41L13 16.17V4h-2v12.17l-5.58-5.59L4 12l8 8 8-8z"/></svg>
+    </button>
+  </div>
+
+  <!-- চায়ের দোকান ও আলমারির UI -->
+  <button id="tea-sit-btn" class="prompt-pill">🪑 সিটে বসুন</button>
+  <div id="tea-menu" class="choice-panel">
+    <button id="btn-drink-tea" class="choice-btn btn-green">☕ চা খাবেন</button>
+    <button id="btn-leave-tea" class="choice-btn btn-red">🚶 চা খাবেন না / উঠে যাবেন</button>
+  </div>
+
+  <button id="wardrobe-ask-btn" class="prompt-pill">🚪 আলমারি খুলবেন?</button>
+  <div id="wardrobe-step1" class="choice-panel">
+    <button id="btn-open-clothes" class="choice-btn btn-green">👕 জামা পড়ুন</button>
+    <button id="btn-close-wardrobe1" class="choice-btn btn-red">🚶 না চলে যান</button>
+  </div>
+  <div id="wardrobe-step2" class="choice-panel">
+    <button class="choice-btn btn-blue" data-shirt="blue">১. নীল জামা পরুন</button>
+    <button class="choice-btn btn-red" data-shirt="redDesign">২. লাল ডিজাইন জামা পরুন</button>
+    <button class="choice-btn btn-dragon" data-shirt="blueDragon">৩. ব্লু কালার ড্রাগনের জামা পরুন</button>
+    <button class="choice-btn btn-sky" data-shirt="plainBlue">৪. শুধু নীল জামা পরুন</button>
+    <button id="btn-exit-wardrobe2" class="choice-btn btn-gray">৫. বের হয়ে যান</button>
+  </div>
+
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.161.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/"
+      }
+    }
+  </script>
+
+  <script type="module">
+    import * as THREE from 'three';
+    import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+    import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+    import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+
+    // =========================================================
+    // ১. ল্যাগ-মুক্ত অপ্টিমাইজড রেন্ডারার ও লাইটিং
+    // =========================================================
+    const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.25));
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFShadowMap;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.08;
+    renderer.domElement.id = 'game-canvas';
+    document.body.appendChild(renderer.domElement);
+
+    const scene = new THREE.Scene();
+    const fog = new THREE.FogExp2(0x93c5fd, 0.0052);
+    scene.fog = fog;
+
+    const camera = new THREE.PerspectiveCamera(56, window.innerWidth / window.innerHeight, 0.1, 220);
+
+    const skyUniforms = {
+      topColor: { value: new THREE.Color(0x2563eb) },
+      bottomColor: { value: new THREE.Color(0xbae6fd) }
+    };
+    scene.add(new THREE.Mesh(
+      new THREE.SphereGeometry(165, 24, 14),
+      new THREE.ShaderMaterial({
+        uniforms: skyUniforms,
+        side: THREE.BackSide,
+        depthWrite: false,
+        vertexShader: `varying vec3 vP; void main(){ vec4 wp=modelMatrix*vec4(position,1.0); vP=wp.xyz; gl_Position=projectionMatrix*viewMatrix*wp; }`,
+        fragmentShader: `uniform vec3 topColor; uniform vec3 bottomColor; varying vec3 vP; void main(){ float h=normalize(vP).y; gl_FragColor=vec4(mix(bottomColor,topColor,pow(max(h,0.0),0.55)),1.0); }`
+      })
+    ));
+
+    const hemiLight = new THREE.HemisphereLight(0xe0f2fe, 0x3b4d36, 0.92);
+    scene.add(hemiLight);
+
+    const sunLight = new THREE.DirectionalLight(0xfff5e4, 1.85);
+    sunLight.position.set(24, 40, 18);
+    sunLight.castShadow = true;
+    sunLight.shadow.mapSize.set(1024, 1024);
+    sunLight.shadow.camera.near = 2;
+    sunLight.shadow.camera.far = 95;
+    sunLight.shadow.camera.left = -26;
+    sunLight.shadow.camera.right = 26;
+    sunLight.shadow.camera.top = 26;
+    sunLight.shadow.camera.bottom = -26;
+    sunLight.shadow.bias = -0.0006;
+    scene.add(sunLight);
+    scene.add(sunLight.target);
+
+    const fillLight = new THREE.DirectionalLight(0xbae6fd, 0.42);
+    fillLight.position.set(-20, 18, -16);
+    scene.add(fillLight);
+
+    // তারা ও চাঁদ
+    const starGeo = new THREE.BufferGeometry();
+    const starPos = [];
+    for (let i = 0; i < 360; i++) {
+      const r = 115 + Math.random() * 20, th = Math.random() * Math.PI * 2, ph = Math.random() * Math.PI * 0.45;
+      starPos.push(r * Math.sin(ph) * Math.cos(th), r * Math.cos(ph), r * Math.sin(ph) * Math.sin(th));
+    }
+    starGeo.setAttribute('position', new THREE.Float32BufferAttribute(starPos, 3));
+    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.9, transparent: true, opacity: 0 });
+    scene.add(new THREE.Points(starGeo, starMat));
+
+    const moonMesh = new THREE.Mesh(
+      new THREE.SphereGeometry(3.0, 14, 12),
+      new THREE.MeshBasicMaterial({ color: 0xfef9c3, transparent: true, opacity: 0 })
+    );
+    moonMesh.position.set(-50, 56, -50);
+    scene.add(moonMesh);
+
+    // =========================================================
+    // ২. টেক্সচার ও ৪ রকমের জামার ক্যানভাস টেক্সচার
+    // =========================================================
+    function makeTexture(size, drawFn, repeatX = 1, repeatY = 1) {
+      const c = document.createElement('canvas');
+      c.width = size; c.height = size;
+      drawFn(c.getContext('2d'), size);
+      const tex = new THREE.CanvasTexture(c);
+      tex.wrapS = THREE.RepeatWrapping;
+      tex.wrapT = THREE.RepeatWrapping;
+      tex.repeat.set(repeatX, repeatY);
+      tex.colorSpace = THREE.SRGBColorSpace;
+      return tex;
+    }
+
+    const grassTex = makeTexture(128, (ctx, s) => {
+      ctx.fillStyle = '#3b6e33'; ctx.fillRect(0, 0, s, s);
+      for (let i = 0; i < 700; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(95,152,68,0.35)' : 'rgba(28,62,24,0.35)';
+        ctx.fillRect(Math.random() * s, Math.random() * s, 2, 3);
+      }
+    }, 36, 36);
+
+    const roadTex = makeTexture(128, (ctx, s) => {
+      ctx.fillStyle = '#222730'; ctx.fillRect(0, 0, s, s);
+      for (let i = 0; i < 700; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.1)';
+        ctx.fillRect(Math.random() * s, Math.random() * s, 2, 2);
+      }
+    }, 12, 12);
+
+    const sidewalkTex = makeTexture(128, (ctx, s) => {
+      ctx.fillStyle = '#9aa3af'; ctx.fillRect(0, 0, s, s);
+      ctx.strokeStyle = '#6c7582'; ctx.lineWidth = 2;
+      for (let i = 0; i <= s; i += 32) {
+        ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, s); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(s, i); ctx.stroke();
+      }
+    }, 16, 16);
+
+    const brickTex = makeTexture(128, (ctx, s) => {
+      ctx.fillStyle = '#7d3e2f'; ctx.fillRect(0, 0, s, s);
+      const rows = 8, cols = 4, rh = s / rows, cw = s / cols;
+      for (let r = 0; r < rows; r++) {
+        const off = (r % 2) * (cw / 2);
+        for (let c = -1; c <= cols; c++) {
+          ctx.fillStyle = Math.random() > 0.35 ? '#9e5340' : '#854231';
+          ctx.fillRect(c * cw + off + 1, r * rh + 1, cw - 2, rh - 2);
+        }
+      }
+    }, 2, 2);
+
+    const stuccoTex = makeTexture(128, (ctx, s) => {
+      ctx.fillStyle = '#ece5d8'; ctx.fillRect(0, 0, s, s);
+      for (let i = 0; i < 600; i++) {
+        ctx.fillStyle = Math.random() > 0.5 ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.05)';
+        ctx.fillRect(Math.random() * s, Math.random() * s, 2, 2);
+      }
+    }, 2, 2);
+
+    const roofTileTex = makeTexture(128, (ctx, s) => {
+      ctx.fillStyle = '#632e23'; ctx.fillRect(0, 0, s, s);
+      ctx.strokeStyle = '#3b1912'; ctx.lineWidth = 2;
+      for (let y = 0; y < s; y += 16) {
+        ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(s, y); ctx.stroke();
+      }
+    }, 3, 3);
+
+    const woodFloorTex = makeTexture(128, (ctx, s) => {
+      ctx.fillStyle = '#785032'; ctx.fillRect(0, 0, s, s);
+      for (let y = 0; y < s; y += 16) {
+        ctx.fillStyle = y % 32 === 0 ? '#6b4428' : '#875b3a';
+        ctx.fillRect(0, y, s, 15);
+      }
+    }, 3, 3);
+
+    const awningTex = makeTexture(128, (ctx, s) => {
+      for (let x = 0; x < s; x += 16) {
+        ctx.fillStyle = (x / 16) % 2 === 0 ? '#dc2626' : '#fef3c7';
+        ctx.fillRect(x, 0, 16, s);
+      }
+    }, 2, 1);
+
+    const SHIRT_TEXTURES = {
+      blue: makeTexture(256, (ctx, s) => {
+        ctx.fillStyle = '#1e40af';
+        ctx.fillRect(0, 0, s, s);
+        ctx.fillStyle = 'rgba(255,255,255,0.08)';
+        for (let y = 0; y < s; y += 16) ctx.fillRect(0, y, s, 2);
+      }),
+      redDesign: makeTexture(256, (ctx, s) => {
+        ctx.fillStyle = '#b91c1c';
+        ctx.fillRect(0, 0, s, s);
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 4;
+        for (let y = 0; y < s; y += 32) {
+          for (let x = 0; x < s; x += 32) {
+            ctx.beginPath();
+            ctx.moveTo(x + 16, y + 4); ctx.lineTo(x + 28, y + 16);
+            ctx.lineTo(x + 16, y + 28); ctx.lineTo(x + 4, y + 16);
+            ctx.closePath(); ctx.stroke();
+          }
+        }
+        ctx.fillStyle = 'rgba(255,255,255,0.22)';
+        for (let y = 16; y < s; y += 32) {
+          for (let x = 16; x < s; x += 32) {
+            ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill();
+          }
+        }
+      }),
+      blueDragon: makeTexture(256, (ctx, s) => {
+        const g = ctx.createLinearGradient(0, 0, 0, s);
+        g.addColorStop(0, '#0f172a');
+        g.addColorStop(0.5, '#1d4ed8');
+        g.addColorStop(1, '#0284c7');
+        ctx.fillStyle = g;
+        ctx.fillRect(0, 0, s, s);
+        for (let i = 0; i < 4; i++) {
+          const ox = (i % 2) * 128 + 64, oy = Math.floor(i / 2) * 128 + 64;
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 5;
+          ctx.beginPath();
+          ctx.moveTo(ox - 34, oy + 26);
+          ctx.bezierCurveTo(ox - 40, oy - 30, ox + 35, oy - 36, ox + 12, oy + 6);
+          ctx.bezierCurveTo(ox - 5, oy + 32, ox + 36, oy + 24, ox + 34, oy - 18);
+          ctx.stroke();
+
+          ctx.fillStyle = '#facc15';
+          ctx.beginPath(); ctx.arc(ox + 12, oy - 18, 7, 0, Math.PI * 2); ctx.fill();
+          ctx.beginPath(); ctx.moveTo(ox + 22, oy - 22); ctx.lineTo(ox + 42, oy - 30); ctx.lineTo(ox + 28, oy - 12); ctx.fill();
+        }
+      }),
+      plainBlue: makeTexture(256, (ctx, s) => {
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(0, 0, s, s);
+      })
+    };
+
+    // =========================================================
+    // ৩. ওপেন ওয়ার্ল্ড ম্যাপ: রাস্তা, প্লাজা ও ১২টি বাড়ি
+    // =========================================================
+    const colliders = [];
+    const nightEmissiveWindows = [];
+    const streetLightBulbs = [];
+    const nightPointLights = [];
+
+    function addBoxCollider(cx, cz, w, d) {
+      colliders.push({ minX: cx - w / 2, maxX: cx + w / 2, minZ: cz - d / 2, maxZ: cz + d / 2 });
+    }
+
+    const MAP_HALF = 56;
+    const groundMesh = new THREE.Mesh(
+      new THREE.PlaneGeometry(150, 150),
+      new THREE.MeshStandardMaterial({ map: grassTex, roughness: 0.92 })
+    );
+    groundMesh.rotation.x = -Math.PI / 2;
+    groundMesh.receiveShadow = true;
+    scene.add(groundMesh);
+
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.9 });
+    [
+      [0, -MAP_HALF, 114, 1.5], [0, MAP_HALF, 114, 1.5],
+      [-MAP_HALF, 0, 1.5, 114], [MAP_HALF, 0, 1.5, 114]
+    ].forEach(([x, z, w, d]) => {
+      const bw = new THREE.Mesh(new THREE.BoxGeometry(w, 2.2, d), wallMat);
+      bw.position.set(x, 1.1, z);
+      scene.add(bw);
+    });
+
+    const asphaltMat = new THREE.MeshStandardMaterial({ map: roadTex, roughness: 0.85 });
+    const concreteMat = new THREE.MeshStandardMaterial({ map: sidewalkTex, roughness: 0.88 });
+    const lineMat = new THREE.MeshBasicMaterial({ color: 0xf8fafc });
+
+    function createRoadSegment(x, z, w, d, horizontal = true) {
+      const sw = new THREE.Mesh(new THREE.BoxGeometry(w + 3.6, 0.06, d + 3.6), concreteMat);
+      sw.position.set(x, 0.03, z); sw.receiveShadow = true;
+      scene.add(sw);
+
+      const rd = new THREE.Mesh(new THREE.BoxGeometry(w, 0.08, d), asphaltMat);
+      rd.position.set(x, 0.04, z); rd.receiveShadow = true;
+      scene.add(rd);
+
+      const len = horizontal ? w : d;
+      for (let t = -len / 2 + 2.5; t < len / 2 - 2.5; t += 5.5) {
+        const dash = new THREE.Mesh(
+          new THREE.PlaneGeometry(horizontal ? 2.2 : 0.22, horizontal ? 0.22 : 2.2),
+          lineMat
+        );
+        dash.rotation.x = -Math.PI / 2;
+        dash.position.set(horizontal ? x + t : x, 0.085, horizontal ? z : z + t);
+        scene.add(dash);
+      }
+    }
+
+    createRoadSegment(0, 0, 92, 8.6, true);
+    createRoadSegment(0, 0, 8.6, 92, false);
+    createRoadSegment(0, -42, 92, 7.6, true);
+    createRoadSegment(0, 42, 92, 7.6, true);
+    createRoadSegment(-42, 0, 7.6, 92, false);
+    createRoadSegment(42, 0, 7.6, 92, false);
+
+    // সেন্ট্রাল প্লাজা
+    const plazaBase = new THREE.Mesh(new THREE.CylinderGeometry(5.2, 5.5, 0.28, 24), concreteMat);
+    plazaBase.position.set(0, 0.14, 0); plazaBase.receiveShadow = true;
+    scene.add(plazaBase);
+
+    const waterPool = new THREE.Mesh(
+      new THREE.CylinderGeometry(3.8, 3.8, 0.34, 22),
+      new THREE.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.12, metalness: 0.5 })
+    );
+    waterPool.position.set(0, 0.18, 0);
+    scene.add(waterPool);
+
+    const fountainPillar = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.78, 2.0, 14), concreteMat);
+    fountainPillar.position.set(0, 1.0, 0); fountainPillar.castShadow = true;
+    scene.add(fountainPillar);
+    addBoxCollider(0, 0, 8.2, 8.2);
+
+    // =========================================================
+    // ৪. ১২টি বাড়ি (বাড়ি #১-এ খাট ও দরজাওয়ালা আলমারি)
+    // =========================================================
+    const sharedGlassMat = new THREE.MeshStandardMaterial({
+      color: 0x93c5fd, roughness: 0.1, metalness: 0.75,
+      emissive: new THREE.Color(0xffb74d), emissiveIntensity: 0
+    });
+    nightEmissiveWindows.push(sharedGlassMat);
+
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.45 });
+    const darkTrimMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.55 });
+    const doorWoodMat = new THREE.MeshStandardMaterial({ color: 0x5c3a21, roughness: 0.62 });
+
+    const HOME_POS = { x: -18, z: -18 };
+    const WARDROBE_WORLD_POS = { x: HOME_POS.x + 2.5, z: HOME_POS.z - 2.3 };
+    let bedHitMesh = null;
+    let wardrobeLeftDoor = null, wardrobeRightDoor = null, wardrobeOpen = false;
+    const homeRoofGroup = new THREE.Group();
+
+    function buildPlayerHome(hx, hz) {
+      const group = new THREE.Group();
+      group.position.set(hx, 0, hz);
+      scene.add(group);
+
+      const W = 8.4, D = 7.4, H = 3.7, wallT = 0.28;
+      const extWallMat = new THREE.MeshStandardMaterial({ map: stuccoTex, color: 0xf5efe6, roughness: 0.82 });
+      const floorMat = new THREE.MeshStandardMaterial({ map: woodFloorTex, roughness: 0.65 });
+
+      const floor = new THREE.Mesh(new THREE.BoxGeometry(W, 0.18, D), floorMat);
+      floor.position.set(0, 0.09, 0); floor.receiveShadow = true;
+      group.add(floor);
+
+      const porch = new THREE.Mesh(new THREE.BoxGeometry(4.2, 0.16, 2.0), concreteMat);
+      porch.position.set(0, 0.08, D / 2 + 1.0); porch.receiveShadow = true;
+      group.add(porch);
+
+      [-1.7, 1.7].forEach(px => {
+        const col = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.15, 3.2, 10), frameMat);
+        col.position.set(px, 1.7, D / 2 + 1.7); col.castShadow = true;
+        group.add(col);
+      });
+
+      const porchRoof = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.22, 2.3), darkTrimMat);
+      porchRoof.position.set(0, 3.35, D / 2 + 1.0); porchRoof.castShadow = true;
+      group.add(porchRoof);
+
+      function addWall(wx, wy, wz, ww, wh, wd, addCol = true) {
+        const m = new THREE.Mesh(new THREE.BoxGeometry(ww, wh, wd), extWallMat);
+        m.position.set(wx, wy, wz); m.castShadow = true; m.receiveShadow = true;
+        group.add(m);
+        if (addCol) addBoxCollider(hx + wx, hz + wz, ww, wd);
+      }
+
+      addWall(0, H / 2 + 0.18, -D / 2, W, H, wallT);
+      addWall(-W / 2, H / 2 + 0.18, 0, wallT, H, D);
+      addWall(W / 2, H / 2 + 0.18, 0, wallT, H, D);
+
+      const doorW = 2.2, doorH = 2.55, sideW = (W - doorW) / 2;
+      addWall(-doorW / 2 - sideW / 2, H / 2 + 0.18, D / 2, sideW, H, wallT);
+      addWall(doorW / 2 + sideW / 2, H / 2 + 0.18, D / 2, sideW, H, wallT);
+      addWall(0, doorH + (H - doorH) / 2 + 0.18, D / 2, doorW, H - doorH, wallT, false);
+
+      [-2.5, 2.5].forEach(wx => {
+        const win = new THREE.Mesh(new THREE.BoxGeometry(1.3, 1.3, 0.34), sharedGlassMat);
+        win.position.set(wx, 2.0, D / 2);
+        group.add(win);
+      });
+
+      const roof = new THREE.Mesh(
+        new THREE.ConeGeometry(6.3, 2.4, 4),
+        new THREE.MeshStandardMaterial({ map: roofTileTex, roughness: 0.74 })
+      );
+      roof.rotation.y = Math.PI / 4;
+      roof.position.set(0, H + 1.35, 0);
+      roof.scale.set(1.08, 1, 0.96);
+      homeRoofGroup.add(roof);
+      group.add(homeRoofGroup);
+
+      // খাট
+      const bedGroup = new THREE.Group();
+      bedGroup.position.set(-2.35, 0.18, -1.75);
+      group.add(bedGroup);
+
+      const bedFrame = new THREE.Mesh(new THREE.BoxGeometry(1.65, 0.36, 2.35), doorWoodMat);
+      bedFrame.position.y = 0.18; bedGroup.add(bedFrame);
+      const headboard = new THREE.Mesh(new THREE.BoxGeometry(1.68, 0.95, 0.14), doorWoodMat);
+      headboard.position.set(0, 0.48, -1.12); bedGroup.add(headboard);
+      const mattress = new THREE.Mesh(new THREE.BoxGeometry(1.52, 0.22, 2.18), new THREE.MeshStandardMaterial({ color: 0xf1f5f9 }));
+      mattress.position.set(0, 0.44, 0.04); bedGroup.add(mattress);
+      const blanket = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.24, 1.42), new THREE.MeshStandardMaterial({ color: 0x1d4ed8 }));
+      blanket.position.set(0, 0.45, 0.42); bedGroup.add(blanket);
+      [-0.38, 0.38].forEach(px => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.14, 0.38), new THREE.MeshStandardMaterial({ color: 0xffffff }));
+        p.position.set(px, 0.58, -0.78); bedGroup.add(p);
+      });
+
+      bedHitMesh = new THREE.Mesh(new THREE.BoxGeometry(1.9, 1.1, 2.5), new THREE.MeshBasicMaterial({ visible: false }));
+      bedHitMesh.position.set(0, 0.55, 0); bedGroup.add(bedHitMesh);
+      addBoxCollider(hx - 2.35, hz - 1.75, 1.65, 2.35);
+
+      const homeLight = new THREE.PointLight(0xffcf87, 1.6, 9, 1.5);
+      homeLight.position.set(hx - 0.5, 2.8, hz - 0.5);
+      scene.add(homeLight);
+
+      // আলমারি (দরজা খুলবে ও বন্ধ হবে)
+      const wGroup = new THREE.Group();
+      wGroup.position.set(2.5, 0.18, -2.75);
+      group.add(wGroup);
+
+      const wBody = new THREE.Mesh(new THREE.BoxGeometry(1.8, 2.25, 0.72), doorWoodMat);
+      wBody.position.y = 1.12; wBody.castShadow = true;
+      wGroup.add(wBody);
+
+      const insideBack = new THREE.Mesh(new THREE.BoxGeometry(1.6, 2.0, 0.06), new THREE.MeshStandardMaterial({ color: 0x1e293b }));
+      insideBack.position.set(0, 1.12, 0.34);
+      wGroup.add(insideBack);
+
+      const doorMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.55 });
+      const leftPivot = new THREE.Group();
+      leftPivot.position.set(-0.88, 1.12, 0.37);
+      const lDoor = new THREE.Mesh(new THREE.BoxGeometry(0.86, 2.15, 0.06), doorMat);
+      lDoor.position.x = 0.43;
+      leftPivot.add(lDoor);
+      wGroup.add(leftPivot);
+      wardrobeLeftDoor = leftPivot;
+
+      const rightPivot = new THREE.Group();
+      rightPivot.position.set(0.88, 1.12, 0.37);
+      const rDoor = new THREE.Mesh(new THREE.BoxGeometry(0.86, 2.15, 0.06), doorMat);
+      rDoor.position.x = -0.43;
+      rightPivot.add(rDoor);
+      wGroup.add(rightPivot);
+      wardrobeRightDoor = rightPivot;
+
+      addBoxCollider(hx + 2.5, hz - 2.75, 1.85, 0.8);
+    }
+
+    function buildNeighborhoodHouse(hx, hz, rotY, style) {
+      const group = new THREE.Group();
+      group.position.set(hx, 0, hz);
+      group.rotation.y = rotY;
+      scene.add(group);
+
+      const W = style.w, D = style.d, H = style.floors === 2 ? 6.0 : 3.4;
+      const bodyMat = new THREE.MeshStandardMaterial({
+        map: style.useBrick ? brickTex : stuccoTex,
+        color: style.wallColor,
+        roughness: 0.84
+      });
+
+      const base = new THREE.Mesh(new THREE.BoxGeometry(W + 0.45, 0.28, D + 0.45), concreteMat);
+      base.position.y = 0.14; base.receiveShadow = true; group.add(base);
+
+      const body = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), bodyMat);
+      body.position.y = H / 2 + 0.28; body.castShadow = true; body.receiveShadow = true; group.add(body);
+
+      const porch = new THREE.Mesh(new THREE.BoxGeometry(3.2, 0.26, 1.7), concreteMat);
+      porch.position.set(0, 0.13, D / 2 + 0.85); group.add(porch);
+
+      [-1.25, 1.25].forEach(px => {
+        const p = new THREE.Mesh(new THREE.BoxGeometry(0.22, 2.8, 0.22), frameMat);
+        p.position.set(px, 1.55, D / 2 + 1.45); group.add(p);
+      });
+
+      const porchCanopy = new THREE.Mesh(new THREE.BoxGeometry(3.5, 0.2, 1.9), darkTrimMat);
+      porchCanopy.position.set(0, 2.95, D / 2 + 0.9); group.add(porchCanopy);
+
+      const door = new THREE.Mesh(new THREE.BoxGeometry(1.1, 2.15, 0.16), doorWoodMat);
+      door.position.set(0, 1.35, D / 2 + 0.05); group.add(door);
+
+      function addWin(wx, wy, wz, ry = 0) {
+        const wg = new THREE.Mesh(new THREE.BoxGeometry(1.18, 1.24, 0.16), sharedGlassMat);
+        wg.position.set(wx, wy, wz); wg.rotation.y = ry;
+        group.add(wg);
+      }
+
+      const winX = W > 8 ? [-2.5, 2.5] : [-2.0, 2.0];
+      winX.forEach(wx => {
+        addWin(wx, 1.9, D / 2 + 0.02, 0);
+        addWin(wx, 1.9, -D / 2 - 0.02, Math.PI);
+        if (style.floors === 2) { addWin(wx, 4.7, D / 2 + 0.02, 0); addWin(wx, 4.7, -D / 2 - 0.02, Math.PI); }
+      });
+
+      const roofMat = new THREE.MeshStandardMaterial({ map: roofTileTex, color: style.roofColor, roughness: 0.76 });
+      if (style.modernRoof) {
+        const oh = new THREE.Mesh(new THREE.BoxGeometry(W + 0.9, 0.32, D + 0.9), darkTrimMat);
+        oh.position.y = H + 0.42; oh.castShadow = true; group.add(oh);
+      } else {
+        const rf = new THREE.Mesh(new THREE.ConeGeometry(Math.max(W, D) * 0.78, 2.5, 4), roofMat);
+        rf.rotation.y = Math.PI / 4;
+        rf.scale.set(W / Math.max(W, D) * 1.05, 1, D / Math.max(W, D) * 1.05);
+        rf.position.y = H + 1.5; rf.castShadow = true; group.add(rf);
+      }
+
+      const rot90 = Math.abs(Math.sin(rotY)) > 0.7;
+      addBoxCollider(hx, hz, rot90 ? D + 0.6 : W + 0.6, rot90 ? W + 0.6 : D + 0.6);
+    }
+
+    buildPlayerHome(HOME_POS.x, HOME_POS.z);
+
+    [
+      { x: -30, z: -18, rot: 0, w: 8.2, d: 7.0, floors: 2, useBrick: true, wallColor: 0xffffff, roofColor: 0x7c2d12, modernRoof: false },
+      { x: -24, z: -31, rot: Math.PI, w: 9.0, d: 6.8, floors: 1, useBrick: false, wallColor: 0xdbeafe, roofColor: 0x334155, modernRoof: true },
+      { x: 16, z: -16, rot: 0, w: 8.6, d: 7.2, floors: 2, useBrick: false, wallColor: 0xfef3c7, roofColor: 0x9a3412, modernRoof: false },
+      { x: 30, z: -16, rot: 0, w: 7.8, d: 7.0, floors: 1, useBrick: true, wallColor: 0xfecaca, roofColor: 0x451a03, modernRoof: false },
+      { x: 23, z: -31, rot: Math.PI, w: 9.4, d: 7.2, floors: 2, useBrick: false, wallColor: 0xe0e7ff, roofColor: 0x1e293b, modernRoof: true },
+      { x: -16, z: 16, rot: Math.PI, w: 8.4, d: 7.0, floors: 2, useBrick: false, wallColor: 0xdcfce7, roofColor: 0x3f2c22, modernRoof: false },
+      { x: -30, z: 16, rot: Math.PI, w: 8.0, d: 7.2, floors: 1, useBrick: true, wallColor: 0xffffff, roofColor: 0x7f1d1d, modernRoof: false },
+      { x: -23, z: 31, rot: 0, w: 9.2, d: 7.0, floors: 2, useBrick: false, wallColor: 0xf3e8ff, roofColor: 0x1e293b, modernRoof: true },
+      { x: 16, z: 16, rot: Math.PI, w: 8.5, d: 7.2, floors: 1, useBrick: false, wallColor: 0xffedd5, roofColor: 0x7c2d12, modernRoof: false },
+      { x: 30, z: 16, rot: Math.PI, w: 8.2, d: 7.0, floors: 2, useBrick: true, wallColor: 0xfde68a, roofColor: 0x1e293b, modernRoof: false },
+      { x: 23, z: 31, rot: 0, w: 9.0, d: 7.2, floors: 2, useBrick: false, wallColor: 0xf1f5f9, roofColor: 0x0f172a, modernRoof: true }
+    ].forEach(s => buildNeighborhoodHouse(s.x, s.z, s.rot, s));
+
+    // =========================================================
+    // ৫. লাইটওয়েট ৩ডি মানুষ (দোকানদার, পথচারী, গুন্ডা - শূন্য ল্যাগ)
+    // =========================================================
+    const npcGeo = {
+      head: new THREE.SphereGeometry(0.115, 12, 10),
+      hair: new THREE.SphereGeometry(0.12, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.58),
+      eye: new THREE.SphereGeometry(0.016, 6, 6),
+      torso: new THREE.BoxGeometry(0.36, 0.54, 0.2),
+      arm: new THREE.CylinderGeometry(0.048, 0.04, 0.52, 8),
+      leg: new THREE.CylinderGeometry(0.068, 0.052, 0.78, 8),
+      shoe: new THREE.BoxGeometry(0.1, 0.08, 0.2)
+    };
+    const npcSkinMat = new THREE.MeshStandardMaterial({ color: 0xd99e7e, roughness: 0.65 });
+    const npcHairMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.8 });
+    const npcEyeMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
+    const npcShoeMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.5 });
+
+    function createSimpleHuman(shirtColor, pantColor, scale = 1) {
+      const root = new THREE.Group();
+      root.scale.setScalar(scale);
+
+      const shirtMat = new THREE.MeshStandardMaterial({ color: shirtColor, roughness: 0.78 });
+      const pantMat = new THREE.MeshStandardMaterial({ color: pantColor, roughness: 0.85 });
+
+      const torso = new THREE.Mesh(npcGeo.torso, shirtMat);
+      torso.position.y = 1.12; torso.castShadow = true; root.add(torso);
+
+      const head = new THREE.Mesh(npcGeo.head, npcSkinMat);
+      head.position.y = 1.52; head.castShadow = true; root.add(head);
+
+      const hair = new THREE.Mesh(npcGeo.hair, npcHairMat);
+      hair.position.set(0, 1.53, -0.01); hair.rotation.x = -0.22; root.add(hair);
+
+      [-0.04, 0.04].forEach(ex => {
+        const e = new THREE.Mesh(npcGeo.eye, npcEyeMat);
+        e.position.set(ex, 1.53, 0.105); root.add(e);
+      });
+
+      const leftArmPivot = new THREE.Group();
+      leftArmPivot.position.set(0.24, 1.35, 0);
+      const la = new THREE.Mesh(npcGeo.arm, shirtMat); la.position.y = -0.25; la.castShadow = true;
+      leftArmPivot.add(la); root.add(leftArmPivot);
+
+      const rightArmPivot = new THREE.Group();
+      rightArmPivot.position.set(-0.24, 1.35, 0);
+      const ra = new THREE.Mesh(npcGeo.arm, shirtMat); ra.position.y = -0.25; ra.castShadow = true;
+      rightArmPivot.add(ra); root.add(rightArmPivot);
+
+      const leftLegPivot = new THREE.Group();
+      leftLegPivot.position.set(0.1, 0.85, 0);
+      const ll = new THREE.Mesh(npcGeo.leg, pantMat); ll.position.y = -0.39; ll.castShadow = true;
+      const ls = new THREE.Mesh(npcGeo.shoe, npcShoeMat); ls.position.set(0, -0.81, 0.04);
+      leftLegPivot.add(ll, ls); root.add(leftLegPivot);
+
+      const rightLegPivot = new THREE.Group();
+      rightLegPivot.position.set(-0.1, 0.85, 0);
+      const rl = new THREE.Mesh(npcGeo.leg, pantMat); rl.position.y = -0.39; rl.castShadow = true;
+      const rs = new THREE.Mesh(npcGeo.shoe, npcShoeMat); rs.position.set(0, -0.81, 0.04);
+      rightLegPivot.add(rl, rs); root.add(rightLegPivot);
+
+      return { root, leftArmPivot, rightArmPivot, leftLegPivot, rightLegPivot, phase: Math.random() * 6 };
+    }
+
+    function animateSimpleHuman(npc, mode, dt, elapsed) {
+      if (mode === 'walk' || mode === 'run') {
+        npc.phase += dt * (mode === 'run' ? 11.5 : 6.6);
+        const amp = mode === 'run' ? 0.72 : 0.44;
+        const s = Math.sin(npc.phase);
+        npc.leftLegPivot.rotation.x = -s * amp;
+        npc.rightLegPivot.rotation.x = s * amp;
+        npc.leftArmPivot.rotation.x = s * amp * 0.8;
+        npc.rightArmPivot.rotation.x = -s * amp * 0.8;
+      } else if (mode === 'shopkeeper') {
+        npc.leftArmPivot.rotation.x = -0.3 + Math.sin(elapsed * 2.2) * 0.12;
+        npc.rightArmPivot.rotation.x = -0.45 + Math.cos(elapsed * 2.5) * 0.18;
+      } else {
+        npc.leftLegPivot.rotation.x *= 0.85;
+        npc.rightLegPivot.rotation.x *= 0.85;
+        npc.leftArmPivot.rotation.x *= 0.85;
+        npc.rightArmPivot.rotation.x *= 0.85;
+      }
+    }
+
+    // =========================================================
+    // ৬. চায়ের দোকান + দোকানদার (চা মামা) + ধোঁয়া
+    // =========================================================
+    const TEA_STALL_POS = { x: -9.5, z: 8.8 };
+    const TEA_BENCH_SEAT = { x: -9.5, z: 7.25, yaw: 0 };
+    const steamParticles = [];
+    let teaStallBulbMat = null;
+    let shopkeeperNPC = null;
+
+    function buildTeaStall(tx, tz) {
+      const g = new THREE.Group();
+      g.position.set(tx, 0, tz);
+      scene.add(g);
+
+      const woodMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.78 });
+      const tinMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.65 });
+      const steelMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8, roughness: 0.25 });
+
+      const base = new THREE.Mesh(new THREE.BoxGeometry(3.8, 0.14, 2.6), concreteMat);
+      base.position.y = 0.07; base.receiveShadow = true; g.add(base);
+
+      [[-1.7, -1.1], [1.7, -1.1], [-1.7, 1.1], [1.7, 1.1]].forEach(([px, pz]) => {
+        const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.07, 2.6, 8), woodMat);
+        post.position.set(px, 1.35, pz); g.add(post);
+      });
+
+      const roof = new THREE.Mesh(
+        new THREE.BoxGeometry(4.2, 0.12, 3.3),
+        new THREE.MeshStandardMaterial({ map: awningTex, roughness: 0.8 })
+      );
+      roof.position.set(0, 2.7, -0.15); roof.rotation.x = 0.12; roof.castShadow = true;
+      g.add(roof);
+
+      const backWall = new THREE.Mesh(new THREE.BoxGeometry(3.5, 2.4, 0.12), tinMat);
+      backWall.position.set(0, 1.3, 1.1); g.add(backWall);
+
+      const counter = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.95, 0.75), woodMat);
+      counter.position.set(0, 0.55, -0.65); counter.castShadow = true; g.add(counter);
+
+      const kettle = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.18, 0.28, 12), steelMat);
+      kettle.position.set(-0.6, 1.16, -0.65); g.add(kettle);
+
+      const jar = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.13, 0.13, 0.34, 10),
+        new THREE.MeshStandardMaterial({ color: 0xfde68a, transparent: true, opacity: 0.75 })
+      );
+      jar.position.set(0.65, 1.2, -0.65); g.add(jar);
+
+      const cupMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
+      for (let i = 0; i < 3; i++) {
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.04, 0.1, 10), cupMat);
+        c.position.set(0.1 + i * 0.16, 1.07, -0.65); g.add(c);
+      }
+
+      teaStallBulbMat = new THREE.MeshStandardMaterial({ color: 0xfffbeb, emissive: 0xf59e0b, emissiveIntensity: 0.5 });
+      const bulb = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 8), teaStallBulbMat);
+      bulb.position.set(0, 2.38, -0.65); g.add(bulb);
+
+      const stallLight = new THREE.PointLight(0xffcf87, 1.4, 9, 1.6);
+      stallLight.position.set(tx, 2.3, tz - 0.65);
+      scene.add(stallLight);
+
+      const benchTop = new THREE.Mesh(new THREE.BoxGeometry(2.5, 0.09, 0.56), woodMat);
+      benchTop.position.set(0, 0.46, -1.55); benchTop.castShadow = true; g.add(benchTop);
+      [-1.0, 1.0].forEach(lx => {
+        const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.44, 0.48), woodMat);
+        leg.position.set(lx, 0.22, -1.55); g.add(leg);
+      });
+
+      const steamMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.45 });
+      for (let i = 0; i < 3; i++) {
+        const sp = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), steamMat.clone());
+        sp.position.set(tx - 0.6, 1.35 + i * 0.15, tz - 0.65);
+        scene.add(sp);
+        steamParticles.push({ mesh: sp, baseX: tx - 0.6, baseZ: tz - 0.65, phase: i * 1.5 });
+      }
+
+      // দোকানদার (কাউন্টারের পেছনে দাঁড়ানো)
+      shopkeeperNPC = createSimpleHuman(0xf59e0b, 0x1e293b, 1.02);
+      shopkeeperNPC.root.position.set(tx, 0.14, tz + 0.28);
+      shopkeeperNPC.root.rotation.y = Math.PI;
+      scene.add(shopkeeperNPC.root);
+
+      addBoxCollider(tx, tz + 0.1, 3.6, 2.1);
+      addBoxCollider(tx, tz - 1.55, 2.4, 0.55);
+    }
+
+    buildTeaStall(TEA_STALL_POS.x, TEA_STALL_POS.z);
+
+    // =========================================================
+    // ৭. গাছ ও স্ট্রিটলাইট
+    // =========================================================
+    const trunkMat = new THREE.MeshStandardMaterial({ color: 0x5c3d28, roughness: 0.9 });
+    const leafMat = new THREE.MeshStandardMaterial({ color: 0x2d6a32, roughness: 0.85 });
+    const trunkGeo = new THREE.CylinderGeometry(0.22, 0.34, 2.4, 7);
+    const leafGeo = new THREE.DodecahedronGeometry(1.45, 0);
+
+    [
+      [-10, -10], [10, -10], [10, 10],
+      [-36, -34], [36, -34], [-36, 34], [36, 34],
+      [-11, -33], [11, -33], [-11, 33], [11, 33],
+      [-36, -9], [36, -9], [-36, 9], [36, 9]
+    ].forEach(([tx, tz], idx) => {
+      const g = new THREE.Group();
+      g.position.set(tx, 0, tz);
+      g.scale.setScalar(0.92 + (idx % 3) * 0.14);
+      const t = new THREE.Mesh(trunkGeo, trunkMat); t.position.y = 1.2; t.castShadow = true;
+      const c = new THREE.Mesh(leafGeo, leafMat); c.position.y = 3.0; c.castShadow = true;
+      g.add(t, c);
+      scene.add(g);
+      addBoxCollider(tx, tz, 0.75, 0.75);
+    });
+
+    const poleMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.45 });
+    const poleGeo = new THREE.CylinderGeometry(0.08, 0.12, 4.6, 7);
+    const bulbGeo = new THREE.SphereGeometry(0.24, 8, 8);
+
+    [
+      [-5.6, -12, true], [5.6, -12, false], [-5.6, 12, false], [5.6, 12, true],
+      [-18, -5.6, true], [18, -5.6, false], [-18, 5.6, false], [18, 5.6, true]
+    ].forEach(([lx, lz, rl]) => {
+      const g = new THREE.Group();
+      g.position.set(lx, 0, lz);
+      const pole = new THREE.Mesh(poleGeo, poleMat); pole.position.y = 2.3; g.add(pole);
+
+      const bMat = new THREE.MeshStandardMaterial({ color: 0xfffbeb, emissive: 0xffb74d, emissiveIntensity: 0 });
+      streetLightBulbs.push(bMat);
+      const bulb = new THREE.Mesh(bulbGeo, bMat); bulb.position.y = 4.65; g.add(bulb);
+
+      if (rl) {
+        const pl = new THREE.PointLight(0xffb74d, 0, 18, 1.6);
+        pl.position.set(lx, 4.4, lz);
+        scene.add(pl);
+        nightPointLights.push(pl);
+      }
+      scene.add(g);
+      addBoxCollider(lx, lz, 0.35, 0.35);
+    });
+
+    // =========================================================
+    // ৮. গাড়ি ও শহরে চলমান ট্রাফিক গাড়ি
+    // =========================================================
+    const cars = [];
+    const carHeadlightMats = [];
+
+    function createSportsCar(x, z, yaw, paintHex, isSport = true, isTraffic = false) {
+      const group = new THREE.Group();
+      group.position.set(x, 0, z); group.rotation.y = yaw;
+      scene.add(group);
+
+      const bodyGroup = new THREE.Group();
+      group.add(bodyGroup);
+
+      const paintMat = new THREE.MeshStandardMaterial({ color: paintHex, metalness: 0.65, roughness: 0.25 });
+      const glassMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.12, metalness: 0.8 });
+      const trimMat = new THREE.MeshStandardMaterial({ color: 0x111827, roughness: 0.65 });
+      const tireMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
+      const rimMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.8, roughness: 0.25 });
+
+      const chassis = new THREE.Mesh(new THREE.BoxGeometry(1.92, 0.56, 4.32), paintMat);
+      chassis.position.set(0, 0.52, 0); chassis.castShadow = true; bodyGroup.add(chassis);
+
+      const hood = new THREE.Mesh(new THREE.BoxGeometry(1.82, 0.16, 1.45), paintMat);
+      hood.position.set(0, 0.79, 1.25); hood.rotation.x = 0.08; bodyGroup.add(hood);
+
+      const cabin = new THREE.Mesh(new THREE.BoxGeometry(1.64, 0.52, 1.95), paintMat);
+      cabin.position.set(0, 1.04, -0.18); cabin.castShadow = true; bodyGroup.add(cabin);
+
+      const windshield = new THREE.Mesh(new THREE.BoxGeometry(1.56, 0.46, 0.08), glassMat);
+      windshield.position.set(0, 1.0, 0.82); windshield.rotation.x = -0.52; bodyGroup.add(windshield);
+
+      const sideGlass = new THREE.Mesh(new THREE.BoxGeometry(1.68, 0.40, 1.55), glassMat);
+      sideGlass.position.set(0, 1.03, -0.18); bodyGroup.add(sideGlass);
+
+      if (isSport) {
+        const wing = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.07, 0.34), trimMat);
+        wing.position.set(0, 1.02, -1.96); bodyGroup.add(wing);
+      }
+
+      const hlMat = new THREE.MeshStandardMaterial({ color: 0xffffff, emissive: 0xfef9c3, emissiveIntensity: 0.25 });
+      carHeadlightMats.push(hlMat);
+      [-0.68, 0.68].forEach(hx => {
+        const hl = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.14, 0.1), hlMat);
+        hl.position.set(hx, 0.56, 2.15); bodyGroup.add(hl);
+      });
+
+      const blMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, emissive: 0xef4444, emissiveIntensity: 0.28 });
+      [-0.68, 0.68].forEach(bx => {
+        const bl = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.14, 0.1), blMat);
+        bl.position.set(bx, 0.58, -2.15); bodyGroup.add(bl);
+      });
+
+      const wheels = [];
+      const tireGeo = new THREE.CylinderGeometry(0.34, 0.34, 0.26, 14);
+      const rimGeo = new THREE.CylinderGeometry(0.22, 0.22, 0.27, 10);
+
+      [
+        { x: -0.94, z: 1.38, front: true }, { x: 0.94, z: 1.38, front: true },
+        { x: -0.94, z: -1.38, front: false }, { x: 0.94, z: -1.38, front: false }
+      ].forEach(wp => {
+        const sp = new THREE.Group();
+        sp.position.set(wp.x, 0.34, wp.z); group.add(sp);
+        const sg = new THREE.Group(); sp.add(sg);
+
+        const tire = new THREE.Mesh(tireGeo, tireMat); tire.rotation.z = Math.PI / 2;
+        const rim = new THREE.Mesh(rimGeo, rimMat); rim.rotation.z = Math.PI / 2;
+        const spoke = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.38, 0.05), trimMat);
+        sg.add(tire, rim, spoke);
+        wheels.push({ steerPivot: sp, spinGroup: sg, front: wp.front });
+      });
+
+      const carObj = {
+        group, bodyGroup, wheels, brakeLightMat: blMat,
+        x, z, yaw, vx: 0, vz: 0, steerAngle: 0, pitch: 0, roll: 0, isTraffic, wpIndex: 0
+      };
+      cars.push(carObj);
+      return carObj;
+    }
+
+    createSportsCar(-12.5, -9.2, Math.PI / 2, 0x1d4ed8, false, false);
+    createSportsCar(11.5, -2.5, 0, 0xdc2626, true, false);
+    createSportsCar(-6.5, 18.0, Math.PI, 0xeab308, true, false);
+    createSportsCar(22.0, 9.5, -Math.PI / 2, 0xe2e8f0, false, false);
+
+    const TRAFFIC_WAYPOINTS = [{ x: 40, z: -40 }, { x: 40, z: 40 }, { x: -40, z: 40 }, { x: -40, z: -40 }];
+    [
+      { x: 0, z: -40, yaw: Math.PI / 2, wp: 0, color: 0x059669 },
+      { x: 40, z: 0, yaw: 0, wp: 1, color: 0xf97316 },
+      { x: -40, z: 0, yaw: Math.PI, wp: 3, color: 0x7c3aed }
+    ].forEach(tc => {
+      const c = createSportsCar(tc.x, tc.z, tc.yaw, tc.color, false, true);
+      c.wpIndex = tc.wp;
+    });
+
+    // =========================================================
+    // ৯. প্লেয়ার (দাড়ি ও কালো চুল + জামা বদল + হাতে চায়ের কাপ)
+    // =========================================================
+    const AVATAR_URL = 'https://cdn.jsdelivr.net/gh/wass08/r3f-lipsync-tutorial@main/public/models/646d9dcdc8a5f5bddbfac913.glb';
+    const gltfLoader = new GLTFLoader();
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.161.0/examples/jsm/libs/draco/gltf/');
+    gltfLoader.setDRACOLoader(dracoLoader);
+    gltfLoader.setMeshoptDecoder(MeshoptDecoder);
+
+    let playerRig = null;
+    let playerShirtMaterials = [];
+
+    const worldTeaCup = new THREE.Group();
+    const cupBody = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.052, 0.038, 0.11, 14),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 })
+    );
+    const cupHandle = new THREE.Mesh(
+      new THREE.TorusGeometry(0.028, 0.008, 8, 12),
+      new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.2 })
+    );
+    cupHandle.position.set(0.048, 0, 0);
+    const cupTea = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.046, 0.046, 0.015, 12),
+      new THREE.MeshStandardMaterial({ color: 0x9a3412, roughness: 0.3 })
+    );
+    cupTea.position.y = 0.045;
+    worldTeaCup.add(cupBody, cupHandle, cupTea);
+    worldTeaCup.visible = false;
+    scene.add(worldTeaCup);
+
+    function createPlayerRig(modelRoot) {
+      const wrapper = new THREE.Group();
+      wrapper.add(modelRoot);
+
+      modelRoot.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(modelRoot);
+      const size = new THREE.Vector3();
+      box.getSize(size);
+      modelRoot.scale.multiplyScalar(1.75 / Math.max(size.y, 0.01));
+
+      modelRoot.updateMatrixWorld(true);
+      const sb = new THREE.Box3().setFromObject(modelRoot);
+      const center = new THREE.Vector3();
+      sb.getCenter(center);
+      modelRoot.position.x -= center.x;
+      modelRoot.position.z -= center.z;
+      modelRoot.position.y -= sb.min.y;
+
+      const bones = {}, boneRest = {};
+      playerShirtMaterials = [];
+
+      modelRoot.traverse(obj => {
+        if (obj.isMesh) {
+          obj.castShadow = true;
+          obj.receiveShadow = true;
+          obj.frustumCulled = false;
+          const n = (obj.name || '').toLowerCase();
+          if ((n.includes('hair') || n.includes('beard')) && obj.material) {
+            if (obj.material.color) obj.material.color.setHex(0x161618);
+            obj.material.roughness = 0.72;
+          }
+          // শুধুমাত্র উপরের জামা (Top/Shirt) সিলেক্ট করা, প্যান্ট/জুতা নয়
+          if ((n.includes('top') || n.includes('shirt')) && !n.includes('bottom') && !n.includes('foot') && obj.material) {
+            obj.material = obj.material.clone();
+            playerShirtMaterials.push(obj.material);
+          }
+        }
+        if (obj.isBone) bones[obj.name.replace(/^mixamorig:?/i, '')] = obj;
+      });
+
+      wrapper.updateMatrixWorld(true);
+      if (bones.LeftFoot && bones.LeftToeBase) {
+        const fp = new THREE.Vector3(), tp = new THREE.Vector3();
+        bones.LeftFoot.getWorldPosition(fp); bones.LeftToeBase.getWorldPosition(tp);
+        if (tp.z < fp.z) { modelRoot.rotation.y += Math.PI; wrapper.updateMatrixWorld(true); }
+      }
+
+      Object.entries(bones).forEach(([name, b]) => {
+        const pwq = new THREE.Quaternion();
+        if (b.parent) b.parent.getWorldQuaternion(pwq);
+        boneRest[name] = { localQuat: b.quaternion.clone(), parentWorldQuat: pwq };
+      });
+
+      let hipsRestPos = new THREE.Vector3(), hipsUnitScale = 1;
+      if (bones.Hips) {
+        hipsRestPos.copy(bones.Hips.position);
+        const ps = new THREE.Vector3();
+        bones.Hips.parent.getWorldScale(ps);
+        hipsUnitScale = 1 / Math.max(ps.y, 0.001);
+      }
+
+      const armL = new THREE.Quaternion(), armR = new THREE.Quaternion();
+      if (bones.LeftArm && bones.LeftForeArm) {
+        const p1 = new THREE.Vector3(), p2 = new THREE.Vector3();
+        bones.LeftArm.getWorldPosition(p1); bones.LeftForeArm.getWorldPosition(p2);
+        armL.setFromUnitVectors(p2.sub(p1).normalize(), new THREE.Vector3(0.08, -1, 0.04).normalize());
+      }
+      if (bones.RightArm && bones.RightForeArm) {
+        const p1 = new THREE.Vector3(), p2 = new THREE.Vector3();
+        bones.RightArm.getWorldPosition(p1); bones.RightForeArm.getWorldPosition(p2);
+        armR.setFromUnitVectors(p2.sub(p1).normalize(), new THREE.Vector3(-0.08, -1, 0.04).normalize());
+      }
+
+      return {
+        wrapper, bones, boneRest, hipsRestPos, hipsUnitScale,
+        armL, armR, armLInv: armL.clone().invert(), armRInv: armR.clone().invert(),
+        gaitPhase: 0
+      };
+    }
+
+    const AX = new THREE.Vector3(1, 0, 0), AY = new THREE.Vector3(0, 1, 0), AZ = new THREE.Vector3(0, 0, 1);
+    const _qT = new THREE.Quaternion(), _qA = new THREE.Quaternion(), _qB = new THREE.Quaternion();
+    const _qArmL = new THREE.Quaternion(), _qArmR = new THREE.Quaternion();
+    const _vHand = new THREE.Vector3(), _vMid = new THREE.Vector3(), _vCamTarget = new THREE.Vector3(), _vCamPos = new THREE.Vector3();
+
+    function makeEulerQ(out, x, y, z) {
+      out.identity();
+      if (x) { _qA.setFromAxisAngle(AX, x); out.multiply(_qA); }
+      if (y) { _qA.setFromAxisAngle(AY, y); out.multiply(_qA); }
+      if (z) { _qA.setFromAxisAngle(AZ, z); out.multiply(_qA); }
+      return out;
+    }
+
+    function applyBoneDelta(rig, boneName, deltaQ, alpha) {
+      const b = rig.bones[boneName], r = rig.boneRest[boneName];
+      if (!b || !r) return;
+      _qT.copy(r.parentWorldQuat).invert().multiply(deltaQ).multiply(r.parentWorldQuat).multiply(r.localQuat);
+      b.quaternion.slerp(_qT, alpha);
+    }
+
+    function updatePlayerPose(rig, state, dt, elapsed, punchTimer, punchCombo, teaSipAmt) {
+      let bobY = 0, hipsYaw = 0, hipsPitch = 0, hipsRoll = 0, spinePitch = 0, spineYaw = 0, headPitch = 0;
+      let lHipX = 0, rHipX = 0, lKneeX = 0.04, rKneeX = 0.04, lAnkleX = 0, rAnkleX = 0;
+      let lArmX = 0, rArmX = 0, lArmZ = 0, rArmZ = 0, lElbowX = -0.18, rElbowX = -0.18;
+
+      if (state === 'sleep') {
+        hipsPitch = -Math.PI / 2;
+        lArmZ = 0.08; rArmZ = -0.08;
+      } else if (state === 'sit') {
+        bobY = -0.45;
+        lHipX = -1.48; rHipX = -1.48;
+        lKneeX = 1.48; rKneeX = 1.48;
+        spinePitch = -0.04;
+        lArmX = -0.35; lElbowX = -0.85; lArmZ = -0.1;
+
+        if (teaSipAmt > 0.01) {
+          rArmX = THREE.MathUtils.lerp(-0.35, -1.05, teaSipAmt);
+          rElbowX = THREE.MathUtils.lerp(-0.85, -1.55, teaSipAmt);
+          rArmZ = THREE.MathUtils.lerp(0.1, 0.25, teaSipAmt);
+          headPitch = THREE.MathUtils.lerp(0, -0.15, Math.max(0, teaSipAmt - 0.45) * 1.8);
+        } else {
+          rArmX = -0.35; rElbowX = -0.85; rArmZ = 0.1;
+        }
+      } else if (state === 'jump') {
+        bobY = 0.05; hipsPitch = 0.08;
+        lHipX = -0.58; rHipX = -0.22;
+        lKneeX = 0.88; rKneeX = 0.42;
+        lArmX = -0.78; rArmX = -0.55;
+        lElbowX = -0.65; rElbowX = -0.65;
+      } else if (state === 'walk') {
+        rig.gaitPhase += dt * 7.2;
+        const p = rig.gaitPhase, s = Math.sin(p);
+        bobY = 0.012 + Math.abs(s) * 0.022;
+        hipsYaw = s * 0.065; hipsRoll = s * 0.028; hipsPitch = 0.025;
+        spinePitch = 0.025; spineYaw = -s * 0.055;
+
+        lHipX = -0.34 * s - 0.05; rHipX = 0.34 * s - 0.05;
+        lKneeX = Math.max(0.05, 0.30 + 0.28 * Math.cos(p + 0.35));
+        rKneeX = Math.max(0.05, 0.30 + 0.28 * Math.cos(p + Math.PI + 0.35));
+        lAnkleX = 0.12 * Math.sin(p - 0.5) - 0.04;
+        rAnkleX = 0.12 * Math.sin(p + Math.PI - 0.5) - 0.04;
+
+        lArmX = s * 0.32; rArmX = -s * 0.32;
+        lElbowX = -0.30 - Math.max(0, -s) * 0.18;
+        rElbowX = -0.30 - Math.max(0, s) * 0.18;
+      } else if (state === 'run') {
+        rig.gaitPhase += dt * 11.4;
+        const p = rig.gaitPhase, s = Math.sin(p);
+        bobY = 0.015 + Math.abs(Math.sin(p - 0.3)) * 0.065;
+        hipsYaw = s * 0.11; hipsPitch = 0.15; spinePitch = 0.12; spineYaw = -s * 0.12;
+
+        lHipX = -0.68 * s - 0.12; rHipX = 0.68 * s - 0.12;
+        lKneeX = Math.max(0.1, 0.58 + 0.52 * Math.cos(p + 0.3));
+        rKneeX = Math.max(0.1, 0.58 + 0.52 * Math.cos(p + Math.PI + 0.3));
+        lAnkleX = 0.18 * Math.sin(p - 0.4);
+        rAnkleX = 0.18 * Math.sin(p + Math.PI - 0.4);
+
+        lArmX = s * 0.72; rArmX = -s * 0.72;
+        lElbowX = -1.25 + s * 0.18; rElbowX = -1.25 - s * 0.18;
+      } else {
+        const b = Math.sin(elapsed * 1.8);
+        bobY = b * 0.004; spinePitch = b * 0.015;
+        lArmZ = 0.02 + b * 0.01; rArmZ = -0.02 - b * 0.01;
+      }
+
+      if (punchTimer > 0) {
+        const pf = Math.sin(punchTimer * Math.PI);
+        if (punchCombo % 2 === 0) {
+          rArmX = -1.48 * pf; rElbowX = -0.22; lArmX = -0.55 * pf; lElbowX = -1.2; spineYaw = 0.45 * pf;
+        } else {
+          lArmX = -1.48 * pf; lElbowX = -0.22; rArmX = -0.55 * pf; rElbowX = -1.2; spineYaw = -0.45 * pf;
+        }
+        spinePitch += 0.14 * pf;
+      }
+
+      const blend = 1 - Math.exp(-15 * dt);
+      if (rig.bones.Hips) {
+        rig.bones.Hips.position.y = THREE.MathUtils.lerp(
+          rig.bones.Hips.position.y,
+          rig.hipsRestPos.y + bobY * rig.hipsUnitScale,
+          blend
+        );
+      }
+
+      applyBoneDelta(rig, 'Hips', makeEulerQ(_qB, hipsPitch, hipsYaw, hipsRoll), blend);
+      applyBoneDelta(rig, 'Spine', makeEulerQ(_qB, spinePitch * 0.5, spineYaw * 0.5, 0), blend);
+      applyBoneDelta(rig, 'Spine1', makeEulerQ(_qB, spinePitch * 0.5, spineYaw * 0.5, 0), blend);
+      applyBoneDelta(rig, 'Head', makeEulerQ(_qB, headPitch, 0, 0), blend);
+
+      applyBoneDelta(rig, 'LeftUpLeg', makeEulerQ(_qB, lHipX, 0, 0), blend);
+      applyBoneDelta(rig, 'RightUpLeg', makeEulerQ(_qB, rHipX, 0, 0), blend);
+      applyBoneDelta(rig, 'LeftLeg', makeEulerQ(_qB, lKneeX, 0, 0), blend);
+      applyBoneDelta(rig, 'RightLeg', makeEulerQ(_qB, rKneeX, 0, 0), blend);
+      applyBoneDelta(rig, 'LeftFoot', makeEulerQ(_qB, lAnkleX, 0, 0), blend);
+      applyBoneDelta(rig, 'RightFoot', makeEulerQ(_qB, rAnkleX, 0, 0), blend);
+
+      const armBlend = punchTimer > 0 ? 0.5 : blend;
+      _qArmL.copy(makeEulerQ(_qB, lArmX, 0, lArmZ)).multiply(rig.armL);
+      _qArmR.copy(makeEulerQ(_qB, rArmX, 0, rArmZ)).multiply(rig.armR);
+      applyBoneDelta(rig, 'LeftArm', _qArmL, armBlend);
+      applyBoneDelta(rig, 'RightArm', _qArmR, armBlend);
+
+      _qArmL.copy(rig.armLInv).multiply(makeEulerQ(_qB, lElbowX, 0, 0)).multiply(rig.armL);
+      _qArmR.copy(rig.armRInv).multiply(makeEulerQ(_qB, rElbowX, 0, 0)).multiply(rig.armR);
+      applyBoneDelta(rig, 'LeftForeArm', _qArmL, armBlend);
+      applyBoneDelta(rig, 'RightForeArm', _qArmR, armBlend);
+    }
+
+    const playerState = {
+      x: HOME_POS.x + 0.2, y: 0.18, z: HOME_POS.z + 0.4,
+      vx: 0, vz: 0, vy: 0, yaw: 0, hp: 100,
+      isGrounded: true, isSleeping: false, isSitting: false,
+      teaTimer: 0, punchTimer: 0, punchCombo: 0, drivingCar: null
+    };
+
+    gltfLoader.load(
+      AVATAR_URL,
+      (gltf) => {
+        playerRig = createPlayerRig(gltf.scene);
+        playerRig.wrapper.position.set(playerState.x, playerState.y, playerState.z);
+        scene.add(playerRig.wrapper);
+
+        const loaderEl = document.getElementById('loader');
+        loaderEl.style.opacity = '0';
+        setTimeout(() => { loaderEl.style.display = 'none'; }, 400);
+      },
+      undefined,
+      () => { document.getElementById('loader-text').textContent = 'ইন্টারনেট সংযোগ পরীক্ষা করুন।'; }
+    );
+
+    const pedestrians = [];
+    [
+      { pts: [[-6.5, -6.5], [-36, -6.5], [-36, -36], [-6.5, -36]], shirt: 0x0284c7, pant: 0x1e293b },
+      { pts: [[6.5, -36], [36, -36], [36, -6.5], [6.5, -6.5]], shirt: 0x16a34a, pant: 0x334155 },
+      { pts: [[-36, 6.5], [-6.5, 6.5], [-6.5, 36], [-36, 36]], shirt: 0xd97706, pant: 0x1e293b },
+      { pts: [[6.5, 6.5], [36, 6.5], [36, 36], [6.5, 36]], shirt: 0x9333ea, pant: 0x0f172a }
+    ].forEach((pl, i) => {
+      const npc = createSimpleHuman(pl.shirt, pl.pant, 1.0);
+      npc.root.position.set(pl.pts[0][0], 0.05, pl.pts[0][1]);
+      scene.add(npc.root);
+      pedestrians.push({ npc, pts: pl.pts, targetIdx: 1, x: pl.pts[0][0], z: pl.pts[0][1], yaw: 0, speed: 1.65 + i * 0.15 });
+    });
+
+    const thugs = [];
+    [[-2, -22], [22, -2], [-22, 2], [2, 22]].forEach(([tx, tz], idx) => {
+      const npc = createSimpleHuman(idx % 2 === 0 ? 0x991b1b : 0x18181b, 0x0f172a, 1.06);
+      npc.root.position.set(tx, 0, tz);
+      npc.root.visible = false;
+      scene.add(npc.root);
+      thugs.push({
+        npc, homeX: tx, homeZ: tz, x: tx, z: tz, yaw: 0, hp: 100,
+        attackCooldown: 0, punchAnim: 0, stunTimer: 0, knockbackVx: 0, knockbackVz: 0
+      });
+    });
+
+    // =========================================================
+    // ১০. কন্ট্রোল ও মাল্টি-টাচ + আলমারি / চা দোকান UI
+    // =========================================================
+    const joystickZone = document.getElementById('joystick-zone');
+    const joystickKnob = document.getElementById('joystick-knob');
+    const footActions = document.getElementById('foot-actions');
+    const jumpBtn = document.getElementById('jump-btn');
+    const fightBtn = document.getElementById('fight-btn');
+    const driveEnterBtn = document.getElementById('drive-enter-btn');
+
+    const carSteerControls = document.getElementById('car-steer-controls');
+    const carPedalControls = document.getElementById('car-pedal-controls');
+    const btnSteerLeft = document.getElementById('btn-steer-left');
+    const btnSteerRight = document.getElementById('btn-steer-right');
+    const btnGas = document.getElementById('btn-gas');
+    const btnBrake = document.getElementById('btn-brake');
+    const carExitBtn = document.getElementById('car-exit-btn');
+
+    const teaSitBtn = document.getElementById('tea-sit-btn');
+    const teaMenu = document.getElementById('tea-menu');
+    const wardrobeAskBtn = document.getElementById('wardrobe-ask-btn');
+    const wardrobeStep1 = document.getElementById('wardrobe-step1');
+    const wardrobeStep2 = document.getElementById('wardrobe-step2');
+    const canvasEl = renderer.domElement;
+
+    let joyTouchId = null, joyMouseDown = false, joyVec = { x: 0, y: 0 };
+    const JOY_MAX = 44;
+    let camTouchId = null, camMouseDown = false;
+    let camPrev = { x: 0, y: 0 }, camStart = { x: 0, y: 0, moved: 0 };
+    let camYaw = Math.PI, camPitch = 0.34;
+    let wardrobeState = 'closed';
+
+    const carInputs = { left: false, right: false, gas: false, brake: false };
+    function bindHoldButton(el, keyName) {
+      const setIds = new Set();
+      el.addEventListener('touchstart', (e) => {
+        e.preventDefault(); e.stopPropagation();
+        for (const t of e.changedTouches) setIds.add(t.identifier);
+        carInputs[keyName] = true; el.classList.add('pressed');
+      }, { passive: false });
+      const endFn = (e) => {
+        e.preventDefault(); e.stopPropagation();
+        for (const t of e.changedTouches) setIds.delete(t.identifier);
+        if (setIds.size === 0) { carInputs[keyName] = false; el.classList.remove('pressed'); }
+      };
+      el.addEventListener('touchend', endFn, { passive: false });
+      el.addEventListener('touchcancel', endFn, { passive: false });
+      el.addEventListener('mousedown', (e) => { e.stopPropagation(); carInputs[keyName] = true; el.classList.add('pressed'); });
+      window.addEventListener('mouseup', () => { if (setIds.size === 0) { carInputs[keyName] = false; el.classList.remove('pressed'); } });
+    }
+    bindHoldButton(btnSteerLeft, 'left');
+    bindHoldButton(btnSteerRight, 'right');
+    bindHoldButton(btnGas, 'gas');
+    bindHoldButton(btnBrake, 'brake');
+
+    function updateJoystick(cx, cy) {
+      const rect = joystickZone.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2, centerY = rect.top + rect.height / 2;
+      let dx = cx - centerX, dy = cy - centerY;
+      const dist = Math.hypot(dx, dy);
+      if (dist > JOY_MAX) { dx = (dx / dist) * JOY_MAX; dy = (dy / dist) * JOY_MAX; }
+      joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+      joyVec.x = dx / JOY_MAX; joyVec.y = dy / JOY_MAX;
+    }
+    function clearJoystick() { joyTouchId = null; joyMouseDown = false; joyVec.x = 0; joyVec.y = 0; joystickKnob.style.transform = 'translate(0px, 0px)'; }
+
+    joystickZone.addEventListener('touchstart', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      if (joyTouchId === null && e.changedTouches.length > 0) {
+        joyTouchId = e.changedTouches[0].identifier;
+        updateJoystick(e.changedTouches[0].clientX, e.changedTouches[0].clientY);
+      }
+    }, { passive: false });
+
+    canvasEl.addEventListener('touchstart', (e) => {
+      e.preventDefault();
+      if (camTouchId === null && e.changedTouches.length > 0) {
+        const t = e.changedTouches[0];
+        camTouchId = t.identifier;
+        camPrev = { x: t.clientX, y: t.clientY };
+        camStart = { x: t.clientX, y: t.clientY, moved: 0 };
+      }
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === joyTouchId) { e.preventDefault(); updateJoystick(t.clientX, t.clientY); }
+        else if (t.identifier === camTouchId) {
+          e.preventDefault();
+          const dx = t.clientX - camPrev.x, dy = t.clientY - camPrev.y;
+          camStart.moved += Math.hypot(dx, dy);
+          camPrev = { x: t.clientX, y: t.clientY };
+          camYaw -= dx * 0.0062;
+          camPitch = Math.max(-0.1, Math.min(1.02, camPitch + dy * 0.0048));
+        }
+      }
+    }, { passive: false });
+
+    function handleTouchEnd(e) {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === joyTouchId) clearJoystick();
+        else if (t.identifier === camTouchId) {
+          camTouchId = null;
+          if (camStart.moved < 14) handleWorldTap(t.clientX, t.clientY);
+        }
+      }
+    }
+    window.addEventListener('touchend', handleTouchEnd, { passive: false });
+    window.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    joystickZone.addEventListener('mousedown', (e) => { e.stopPropagation(); joyMouseDown = true; updateJoystick(e.clientX, e.clientY); });
+    canvasEl.addEventListener('mousedown', (e) => { camMouseDown = true; camPrev = { x: e.clientX, y: e.clientY }; camStart = { x: e.clientX, y: e.clientY, moved: 0 }; });
+    window.addEventListener('mousemove', (e) => {
+      if (joyMouseDown) updateJoystick(e.clientX, e.clientY);
+      if (camMouseDown) {
+        const dx = e.clientX - camPrev.x, dy = e.clientY - camPrev.y;
+        camStart.moved += Math.hypot(dx, dy);
+        camPrev = { x: e.clientX, y: e.clientY };
+        camYaw -= dx * 0.0062; camPitch = Math.max(-0.1, Math.min(1.02, camPitch + dy * 0.0048));
+      }
+    });
+    window.addEventListener('mouseup', (e) => {
+      if (joyMouseDown) clearJoystick();
+      if (camMouseDown) { camMouseDown = false; if (camStart.moved < 12) handleWorldTap(e.clientX, e.clientY); }
+    });
+
+    function triggerJump() {
+      if (!playerState.drivingCar && !playerState.isSitting && playerState.isGrounded && !playerState.isSleeping && wardrobeState === 'closed') {
+        playerState.vy = 7.4; playerState.isGrounded = false;
+      }
+    }
+
+    function triggerFight() {
+      if (playerState.drivingCar || playerState.isSitting || playerState.isSleeping || wardrobeState !== 'closed') return;
+      if (playerState.punchTimer > 0.35) return;
+      playerState.punchTimer = 1.0; playerState.punchCombo++;
+
+      const fX = Math.sin(playerState.yaw), fZ = Math.cos(playerState.yaw);
+      for (const t of thugs) {
+        if (!t.npc.root.visible || t.hp <= 0) continue;
+        const dx = t.x - playerState.x, dz = t.z - playerState.z, dist = Math.hypot(dx, dz);
+        if (dist < 2.35 && ((dx * fX + dz * fZ) / Math.max(dist, 0.01) > -0.25 || dist < 1.25)) {
+          t.hp -= 35; t.stunTimer = 1.3;
+          const px = dist > 0.01 ? dx / dist : fX, pz = dist > 0.01 ? dz / dist : fZ;
+          t.knockbackVx = px * 7.5; t.knockbackVz = pz * 7.5;
+          if (t.hp <= 0) {
+            t.npc.root.visible = false;
+            setTimeout(() => { t.hp = 100; t.x = t.homeX; t.z = t.homeZ; }, 8000);
+          }
+        }
+      }
+    }
+
+    function setCarUIMode(inCar) {
+      joystickZone.style.display = inCar ? 'none' : 'flex';
+      footActions.style.display = inCar ? 'none' : 'flex';
+      driveEnterBtn.classList.remove('visible');
+      carSteerControls.classList.toggle('visible', inCar);
+      carPedalControls.classList.toggle('visible', inCar);
+    }
+
+    function enterOrExitCar() {
+      if (playerState.isSleeping || playerState.isSitting || wardrobeState !== 'closed') return;
+      if (playerState.drivingCar) {
+        const car = playerState.drivingCar;
+        const res = resolveCollisions(car.x - Math.cos(car.yaw) * 1.7, car.z + Math.sin(car.yaw) * 1.7, 0.38);
+        playerState.x = res.x; playerState.z = res.z; playerState.y = getGroundHeight(res.x, res.z);
+        playerState.yaw = car.yaw; playerState.vx = 0; playerState.vz = 0; playerState.drivingCar = null;
+        if (playerRig) playerRig.wrapper.visible = true;
+        carInputs.left = carInputs.right = carInputs.gas = carInputs.brake = false;
+        setCarUIMode(false);
+      } else {
+        let nearest = null, bestDist = 3.6;
+        for (const c of cars) {
+          const d = Math.hypot(playerState.x - c.x, playerState.z - c.z);
+          if (d < bestDist) { bestDist = d; nearest = c; }
+        }
+        if (nearest) {
+          nearest.isTraffic = false;
+          playerState.drivingCar = nearest; playerState.vx = 0; playerState.vz = 0;
+          if (playerRig) playerRig.wrapper.visible = false;
+          camYaw = nearest.yaw;
+          setCarUIMode(true);
+        }
+      }
+    }
+
+    function sitAtTeaStall() {
+      if (playerState.drivingCar || playerState.isSleeping) return;
+      playerState.isSitting = true; playerState.teaTimer = 0;
+      playerState.vx = 0; playerState.vz = 0;
+      playerState.x = TEA_BENCH_SEAT.x; playerState.z = TEA_BENCH_SEAT.z; playerState.y = 0;
+      playerState.yaw = TEA_BENCH_SEAT.yaw;
+      teaSitBtn.classList.remove('visible');
+      teaMenu.classList.add('visible');
+      joystickZone.style.display = 'none';
+      footActions.style.display = 'none';
+      camYaw = Math.PI * 0.72;
+    }
+
+    function drinkTeaAction() {
+      if (!playerState.isSitting || playerState.teaTimer > 0) return;
+      playerState.teaTimer = 4.2;
+      playerState.hp = Math.min(100, playerState.hp + 25);
+      worldTeaCup.visible = true;
+    }
+
+    function standUpFromTeaStall() {
+      playerState.isSitting = false; playerState.teaTimer = 0;
+      worldTeaCup.visible = false;
+      playerState.z = TEA_BENCH_SEAT.z - 0.85;
+      teaMenu.classList.remove('visible');
+      joystickZone.style.display = 'flex';
+      footActions.style.display = 'flex';
+    }
+
+    function openWardrobeStep1() {
+      wardrobeState = 'step1';
+      wardrobeOpen = true;
+      playerState.vx = 0; playerState.vz = 0;
+      wardrobeAskBtn.classList.remove('visible');
+      wardrobeStep1.classList.add('visible');
+      joystickZone.style.display = 'none';
+      footActions.style.display = 'none';
+    }
+
+    function openWardrobeStep2() {
+      wardrobeState = 'step2';
+      wardrobeStep1.classList.remove('visible');
+      wardrobeStep2.classList.add('visible');
+    }
+
+    function closeWardrobe() {
+      wardrobeState = 'closed';
+      wardrobeOpen = false;
+      wardrobeStep1.classList.remove('visible');
+      wardrobeStep2.classList.remove('visible');
+      joystickZone.style.display = 'flex';
+      footActions.style.display = 'flex';
+    }
+
+    function wearShirt(key) {
+      const tex = SHIRT_TEXTURES[key];
+      if (!tex) return;
+      for (const m of playerShirtMaterials) {
+        m.map = tex;
+        m.color.setHex(0xffffff);
+        m.needsUpdate = true;
+      }
+    }
+
+    jumpBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); jumpBtn.classList.add('pressed'); triggerJump(); }, { passive: false });
+    jumpBtn.addEventListener('touchend', () => jumpBtn.classList.remove('pressed'));
+    jumpBtn.addEventListener('mousedown', (e) => { e.stopPropagation(); jumpBtn.classList.add('pressed'); triggerJump(); });
+    window.addEventListener('mouseup', () => jumpBtn.classList.remove('pressed'));
+
+    fightBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); fightBtn.classList.add('pressed'); triggerFight(); }, { passive: false });
+    fightBtn.addEventListener('touchend', () => fightBtn.classList.remove('pressed'));
+    fightBtn.addEventListener('mousedown', (e) => { e.stopPropagation(); fightBtn.classList.add('pressed'); triggerFight(); });
+    window.addEventListener('mouseup', () => fightBtn.classList.remove('pressed'));
+
+    driveEnterBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); enterOrExitCar(); }, { passive: false });
+    driveEnterBtn.addEventListener('click', (e) => { e.stopPropagation(); enterOrExitCar(); });
+    carExitBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); enterOrExitCar(); }, { passive: false });
+    carExitBtn.addEventListener('click', (e) => { e.stopPropagation(); enterOrExitCar(); });
+
+    teaSitBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); sitAtTeaStall(); }, { passive: false });
+    teaSitBtn.addEventListener('click', (e) => { e.stopPropagation(); sitAtTeaStall(); });
+    document.getElementById('btn-drink-tea').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); drinkTeaAction(); }, { passive: false });
+    document.getElementById('btn-drink-tea').addEventListener('click', (e) => { e.stopPropagation(); drinkTeaAction(); });
+    document.getElementById('btn-leave-tea').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); standUpFromTeaStall(); }, { passive: false });
+    document.getElementById('btn-leave-tea').addEventListener('click', (e) => { e.stopPropagation(); standUpFromTeaStall(); });
+
+    wardrobeAskBtn.addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); openWardrobeStep1(); }, { passive: false });
+    wardrobeAskBtn.addEventListener('click', (e) => { e.stopPropagation(); openWardrobeStep1(); });
+    document.getElementById('btn-open-clothes').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); openWardrobeStep2(); }, { passive: false });
+    document.getElementById('btn-open-clothes').addEventListener('click', (e) => { e.stopPropagation(); openWardrobeStep2(); });
+    document.getElementById('btn-close-wardrobe1').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); closeWardrobe(); }, { passive: false });
+    document.getElementById('btn-close-wardrobe1').addEventListener('click', (e) => { e.stopPropagation(); closeWardrobe(); });
+    document.getElementById('btn-exit-wardrobe2').addEventListener('touchstart', (e) => { e.preventDefault(); e.stopPropagation(); closeWardrobe(); }, { passive: false });
+    document.getElementById('btn-exit-wardrobe2').addEventListener('click', (e) => { e.stopPropagation(); closeWardrobe(); });
+
+    wardrobeStep2.querySelectorAll('[data-shirt]').forEach(btn => {
+      const fn = (e) => { e.preventDefault(); e.stopPropagation(); wearShirt(btn.getAttribute('data-shirt')); };
+      btn.addEventListener('touchstart', fn, { passive: false });
+      btn.addEventListener('click', fn);
+    });
+
+    const keys = {};
+    window.addEventListener('keydown', (e) => {
+      keys[e.code] = true;
+      if (e.code === 'Space') triggerJump();
+      if (e.code === 'KeyJ' || e.code === 'KeyK') triggerFight();
+      if (e.code === 'KeyF' || e.code === 'KeyE') enterOrExitCar();
+    });
+    window.addEventListener('keyup', (e) => { keys[e.code] = false; });
+
+    const raycaster = new THREE.Raycaster();
+    const pointerNDC = new THREE.Vector2();
+    function handleWorldTap(clientX, clientY) {
+      if (!bedHitMesh || playerState.isSleeping || playerState.drivingCar || playerState.isSitting || wardrobeState !== 'closed') return;
+      pointerNDC.x = (clientX / window.innerWidth) * 2 - 1;
+      pointerNDC.y = -(clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(pointerNDC, camera);
+      if (raycaster.intersectObject(bedHitMesh, false).length > 0) {
+        if (Math.hypot(playerState.x - (HOME_POS.x - 2.35), playerState.z - (HOME_POS.z - 1.75)) < 4.5) startSleepSequence();
+      }
+    }
+
+    // =========================================================
+    // ১১. দিন-রাত সাইকেল, কলিশন ও গাড়ির ফিজিক্স
+    // =========================================================
+    const CYCLE_DURATION = 540; // ৯ মিনিট
+    let cycleTime = 45;
+
+    function startSleepSequence() {
+      playerState.isSleeping = true;
+      playerState.x = HOME_POS.x - 2.35; playerState.z = HOME_POS.z - 1.75;
+      playerState.y = 0.72; playerState.yaw = 0;
+      const fade = document.getElementById('sleep-fade');
+      fade.style.opacity = '1';
+      setTimeout(() => {
+        cycleTime = 45; playerState.hp = 100;
+        playerState.x = HOME_POS.x - 0.8; playerState.z = HOME_POS.z - 1.4;
+        playerState.y = 0.18; playerState.isSleeping = false;
+        fade.style.opacity = '0';
+      }, 1500);
+    }
+
+    function triggerDamageFlash() {
+      const flash = document.getElementById('damage-flash');
+      flash.style.opacity = '1';
+      setTimeout(() => { flash.style.opacity = '0'; }, 220);
+    }
+
+    function isInsideHome(x, z) { return Math.abs(x - HOME_POS.x) < 4.3 && Math.abs(z - HOME_POS.z) < 3.8; }
+    function getGroundHeight(x, z) {
+      if (Math.abs(x - HOME_POS.x) < 4.2 && Math.abs(z - HOME_POS.z) < 3.7) return 0.18;
+      if (Math.abs(x - HOME_POS.x) < 2.1 && z >= HOME_POS.z + 3.7 && z <= HOME_POS.z + 5.7) return 0.16;
+      return 0.0;
+    }
+
+    const _colOut = { x: 0, z: 0 };
+    function resolveCollisions(x, z, radius = 0.34, ignoreCar = null) {
+      let nx = Math.max(-MAP_HALF + 1.2, Math.min(MAP_HALF - 1.2, x));
+      let nz = Math.max(-MAP_HALF + 1.2, Math.min(MAP_HALF - 1.2, z));
+
+      for (let i = 0; i < colliders.length; i++) {
+        const c = colliders[i];
+        const cx = Math.max(c.minX, Math.min(nx, c.maxX));
+        const cz = Math.max(c.minZ, Math.min(nz, c.maxZ));
+        const dx = nx - cx, dz = nz - cz, dSq = dx * dx + dz * dz;
+        if (dSq < radius * radius) {
+          const d = Math.sqrt(dSq);
+          if (d > 0.0001) { nx += (dx / d) * (radius - d); nz += (dz / d) * (radius - d); }
+          else nx += radius;
+        }
+      }
+
+      for (let i = 0; i < cars.length; i++) {
+        const car = cars[i];
+        if (car === ignoreCar) continue;
+        const dx = nx - car.x, dz = nz - car.z, d = Math.hypot(dx, dz), minD = radius + 1.45;
+        if (d < minD && d > 0.001) { nx += (dx / d) * (minD - d); nz += (dz / d) * (minD - d); }
+      }
+      _colOut.x = nx; _colOut.z = nz;
+      return _colOut;
+    }
+
+    function updateCarPhysics(car, throttleInput, steerInput, dt) {
+      const fX = Math.sin(car.yaw), fZ = Math.cos(car.yaw);
+      const rX = Math.cos(car.yaw), rZ = -Math.sin(car.yaw);
+      let forwardSpeed = car.vx * fX + car.vz * fZ;
+      let lateralSpeed = car.vx * rX + car.vz * rZ;
+
+      const isBraking = (throttleInput < -0.1 && forwardSpeed > 0.8) || (throttleInput > 0.1 && forwardSpeed < -0.8);
+      car.brakeLightMat.emissiveIntensity = isBraking ? 2.6 : 0.35;
+
+      const MAX_FWD = car.isTraffic ? 9.5 : 24.5;
+      if (throttleInput > 0.05) {
+        if (forwardSpeed < 0) forwardSpeed += 30.0 * dt;
+        else forwardSpeed += (car.isTraffic ? 8.5 : 16.5) * throttleInput * dt;
+      } else if (throttleInput < -0.05) {
+        if (forwardSpeed > 0.5) forwardSpeed -= 32.0 * Math.abs(throttleInput) * dt;
+        else forwardSpeed += 10.0 * throttleInput * dt;
+      } else {
+        forwardSpeed *= Math.exp(-1.8 * dt);
+      }
+      forwardSpeed = Math.max(-9.5, Math.min(MAX_FWD, forwardSpeed));
+
+      car.steerAngle = THREE.MathUtils.lerp(car.steerAngle, steerInput * 0.54, 1 - Math.exp(-10 * dt));
+      const speedFactor = Math.min(1, Math.abs(forwardSpeed) / 3.0);
+      const turnDir = forwardSpeed >= -0.1 ? 1 : -1;
+      car.yaw += car.steerAngle * 2.4 * speedFactor * turnDir * (1 - Math.abs(forwardSpeed) / 50) * dt;
+
+      lateralSpeed *= Math.exp(-8.5 * dt);
+      const nfX = Math.sin(car.yaw), nfZ = Math.cos(car.yaw);
+      const nrX = Math.cos(car.yaw), nrZ = -Math.sin(car.yaw);
+      car.vx = nfX * forwardSpeed + nrX * lateralSpeed;
+      car.vz = nfZ * forwardSpeed + nrZ * lateralSpeed;
+
+      const nextX = car.x + car.vx * dt, nextZ = car.z + car.vz * dt;
+      const fc = resolveCollisions(nextX + nfX * 1.1, nextZ + nfZ * 1.1, 1.05, car);
+      const fcx = fc.x, fcz = fc.z;
+      const rc = resolveCollisions(nextX - nfX * 1.1, nextZ - nfZ * 1.1, 1.05, car);
+      const corrX = ((fcx - nfX * 1.1) + (rc.x + nfX * 1.1)) * 0.5;
+      const corrZ = ((fcz - nfZ * 1.1) + (rc.z + nfZ * 1.1)) * 0.5;
+
+      if (Math.hypot(corrX - nextX, corrZ - nextZ) > 0.04) { car.vx *= 0.4; car.vz *= 0.4; }
+      car.x = corrX; car.z = corrZ;
+      car.group.position.set(car.x, 0, car.z);
+      car.group.rotation.y = car.yaw;
+
+      const susp = 1 - Math.exp(-10 * dt);
+      car.pitch = THREE.MathUtils.lerp(car.pitch, isBraking ? 0.036 : (throttleInput > 0.2 ? -0.025 : 0), susp);
+      car.roll = THREE.MathUtils.lerp(car.roll, -car.steerAngle * Math.min(1, Math.abs(forwardSpeed) / 14) * 0.07, susp);
+      car.bodyGroup.rotation.x = car.pitch;
+      car.bodyGroup.rotation.z = car.roll;
+
+      const wSpin = (forwardSpeed / 0.34) * dt;
+      for (const w of car.wheels) {
+        w.spinGroup.rotation.x += wSpin;
+        if (w.front) w.steerPivot.rotation.y = car.steerAngle;
+      }
+
+      if (!car.isTraffic && Math.hypot(car.vx, car.vz) > 4.5) {
+        for (const t of thugs) {
+          if (!t.npc.root.visible) continue;
+          const dx = t.x - car.x, dz = t.z - car.z, dist = Math.hypot(dx, dz);
+          if (dist < 2.2) {
+            t.hp -= 60; t.stunTimer = 2.0;
+            t.knockbackVx = (dx / Math.max(dist, 0.1)) * 8;
+            t.knockbackVz = (dz / Math.max(dist, 0.1)) * 8;
+            if (t.hp <= 0) {
+              t.npc.root.visible = false;
+              setTimeout(() => { t.hp = 100; t.x = t.homeX; t.z = t.homeZ; }, 8000);
+            }
+          }
+        }
+      }
+    }
+
+    // =========================================================
+    // ১২. মেইন অ্যানিমেশন লুপ
+    // =========================================================
+    const clock = new THREE.Clock();
+    const dayTop = new THREE.Color(0x2563eb), dayBot = new THREE.Color(0xbae6fd);
+    const sunTop = new THREE.Color(0x7c2d12), sunBot = new THREE.Color(0xfb923c);
+    const nigTop = new THREE.Color(0x020617), nigBot = new THREE.Color(0x0f172a);
+    const curCamTarget = new THREE.Vector3(playerState.x, 1.4, playerState.z);
+
+    function animate() {
+      requestAnimationFrame(animate);
+      const dt = Math.min(clock.getDelta(), 0.05);
+      const elapsed = clock.getElapsedTime();
+
+      cycleTime = (cycleTime + dt) % CYCLE_DURATION;
+      const p = cycleTime / CYCLE_DURATION;
+      const isNight = p >= 0.667;
+
+      let nightFactor = 0;
+      if (p < 0.58) {
+        skyUniforms.topColor.value.copy(dayTop); skyUniforms.bottomColor.value.copy(dayBot);
+      } else if (p < 0.667) {
+        const t = (p - 0.58) / (0.667 - 0.58);
+        nightFactor = t;
+        if (t < 0.5) { skyUniforms.topColor.value.copy(dayTop).lerp(sunTop, t * 2); skyUniforms.bottomColor.value.copy(dayBot).lerp(sunBot, t * 2); }
+        else { skyUniforms.topColor.value.copy(sunTop).lerp(nigTop, (t - 0.5) * 2); skyUniforms.bottomColor.value.copy(sunBot).lerp(nigBot, (t - 0.5) * 2); }
+      } else if (p < 0.94) {
+        nightFactor = 1; skyUniforms.topColor.value.copy(nigTop); skyUniforms.bottomColor.value.copy(nigBot);
+      } else {
+        const t = (p - 0.94) / 0.06;
+        nightFactor = 1 - t;
+        skyUniforms.topColor.value.copy(nigTop).lerp(dayTop, t); skyUniforms.bottomColor.value.copy(nigBot).lerp(dayBot, t);
+      }
+
+      fog.color.copy(skyUniforms.bottomColor.value);
+      fog.density = THREE.MathUtils.lerp(0.0052, 0.013, nightFactor);
+      sunLight.intensity = THREE.MathUtils.lerp(1.85, 0.25, nightFactor);
+      hemiLight.intensity = THREE.MathUtils.lerp(0.92, 0.26, nightFactor);
+      starMat.opacity = Math.max(0, (nightFactor - 0.35) * 1.6);
+      moonMesh.material.opacity = Math.max(0, (nightFactor - 0.3) * 1.5);
+
+      nightEmissiveWindows.forEach(m => { m.emissiveIntensity = nightFactor * 1.2; });
+      streetLightBulbs.forEach(m => { m.emissiveIntensity = nightFactor * 2.4; });
+      nightPointLights.forEach(pl => { pl.intensity = nightFactor * 2.8; });
+      carHeadlightMats.forEach(m => { m.emissiveIntensity = 0.25 + nightFactor * 2.5; });
+      if (teaStallBulbMat) teaStallBulbMat.emissiveIntensity = 0.4 + nightFactor * 2.2;
+
+      sunLight.position.set(playerState.x + 24, 40, playerState.z + 18);
+      sunLight.target.position.set(playerState.x, 0, playerState.z);
+
+      if (wardrobeLeftDoor && wardrobeRightDoor) {
+        const targetAngle = wardrobeOpen ? -1.45 : 0;
+        wardrobeLeftDoor.rotation.y = THREE.MathUtils.lerp(wardrobeLeftDoor.rotation.y, targetAngle, 0.16);
+        wardrobeRightDoor.rotation.y = THREE.MathUtils.lerp(wardrobeRightDoor.rotation.y, -targetAngle, 0.16);
+      }
+
+      if (shopkeeperNPC) animateSimpleHuman(shopkeeperNPC, 'shopkeeper', dt, elapsed);
+      for (const sp of steamParticles) {
+        sp.phase += dt * 1.6;
+        const t = sp.phase % 1;
+        sp.mesh.position.y = 1.32 + t * 0.65;
+        sp.mesh.position.x = sp.baseX + Math.sin(sp.phase * 4) * 0.05;
+        sp.mesh.material.opacity = (1 - t) * 0.42;
+      }
+
+      let nearCar = false;
+      for (const c of cars) {
+        if (playerState.drivingCar === c) {
+          const gas = (carInputs.gas || keys['KeyW'] || keys['ArrowUp']) ? 1 : 0;
+          const brk = (carInputs.brake || keys['KeyS'] || keys['ArrowDown']) ? 1 : 0;
+          const lft = (carInputs.left || keys['KeyA'] || keys['ArrowLeft']) ? 1 : 0;
+          const rgt = (carInputs.right || keys['KeyD'] || keys['ArrowRight']) ? 1 : 0;
+          updateCarPhysics(c, gas - brk, lft - rgt, dt);
+
+          playerState.x = c.x; playerState.z = c.z; playerState.y = 0.5; playerState.yaw = c.yaw;
+          if (camTouchId === null && !camMouseDown) {
+            let diff = c.yaw - camYaw;
+            while (diff > Math.PI) diff -= Math.PI * 2;
+            while (diff < -Math.PI) diff += Math.PI * 2;
+            camYaw += diff * (1 - Math.exp(-4.5 * dt));
+          }
+        } else if (c.isTraffic) {
+          const wp = TRAFFIC_WAYPOINTS[c.wpIndex];
+          const dx = wp.x - c.x, dz = wp.z - c.z, dist = Math.hypot(dx, dz);
+          if (dist < 4.5) c.wpIndex = (c.wpIndex + 1) % TRAFFIC_WAYPOINTS.length;
+          let angleDiff = Math.atan2(dx, dz) - c.yaw;
+          while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+          while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+
+          let blocked = false;
+          const fX = Math.sin(c.yaw), fZ = Math.cos(c.yaw);
+          const pDx = playerState.x - c.x, pDz = playerState.z - c.z, pD = Math.hypot(pDx, pDz);
+          if (pD < 6.5 && (pDx * fX + pDz * fZ) / Math.max(pD, 0.1) > 0.72) blocked = true;
+          for (const oc of cars) {
+            if (oc === c) continue;
+            const oDx = oc.x - c.x, oDz = oc.z - c.z, oD = Math.hypot(oDx, oDz);
+            if (oD < 7.5 && (oDx * fX + oDz * fZ) / Math.max(oD, 0.1) > 0.75) blocked = true;
+          }
+          updateCarPhysics(c, blocked ? -0.8 : 0.75, THREE.MathUtils.clamp(angleDiff * 1.4, -1, 1), dt);
+          if (!playerState.drivingCar && Math.hypot(playerState.x - c.x, playerState.z - c.z) < 3.6) nearCar = true;
+        } else {
+          updateCarPhysics(c, 0, 0, dt);
+          if (!playerState.drivingCar && Math.hypot(playerState.x - c.x, playerState.z - c.z) < 3.6) nearCar = true;
+        }
+      }
+
+      if (!playerState.drivingCar && !playerState.isSitting && !playerState.isSleeping && wardrobeState === 'closed') {
+        driveEnterBtn.classList.toggle('visible', nearCar);
+        teaSitBtn.classList.toggle('visible', Math.hypot(playerState.x - TEA_BENCH_SEAT.x, playerState.z - TEA_BENCH_SEAT.z) < 3.4);
+        wardrobeAskBtn.classList.toggle('visible', Math.hypot(playerState.x - WARDROBE_WORLD_POS.x, playerState.z - WARDROBE_WORLD_POS.z) < 2.5);
+      } else {
+        driveEnterBtn.classList.remove('visible');
+        teaSitBtn.classList.remove('visible');
+        wardrobeAskBtn.classList.remove('visible');
+      }
+
+      if (playerRig) {
+        if (!playerState.drivingCar) {
+          let inX = joyVec.x, inY = joyVec.y;
+          if (keys['KeyA'] || keys['ArrowLeft']) inX = -1;
+          if (keys['KeyD'] || keys['ArrowRight']) inX = 1;
+          if (keys['KeyW'] || keys['ArrowUp']) inY = -1;
+          if (keys['KeyS'] || keys['ArrowDown']) inY = 1;
+
+          const inputMag = Math.min(1, Math.hypot(inX, inY));
+          let animState = 'idle', teaSipAmt = 0;
+
+          if (playerState.isSitting) {
+            animState = 'sit';
+            if (playerState.teaTimer > 0) {
+              playerState.teaTimer -= dt;
+              const prog = 1 - Math.max(0, playerState.teaTimer) / 4.2;
+              teaSipAmt = Math.max(0, Math.sin(prog * Math.PI * 2) * 0.5 + 0.5) * Math.sin(prog * Math.PI);
+              if (playerState.teaTimer <= 0) {
+                playerState.teaTimer = 0;
+                worldTeaCup.visible = false;
+              }
+            }
+          } else if (playerState.isSleeping) {
+            animState = 'sleep';
+          } else if (wardrobeState === 'closed') {
+            let targetVx = 0, targetVz = 0;
+            if (inputMag > 0.08) {
+              const fX = Math.sin(camYaw), fZ = Math.cos(camYaw);
+              const rX = Math.cos(camYaw), rZ = -Math.sin(camYaw);
+              const dirX = fX * (-inY) + rX * (-inX), dirZ = fZ * (-inY) + rZ * (-inX);
+              const len = Math.hypot(dirX, dirZ) || 1;
+              const nx = dirX / len, nz = dirZ / len;
+              const speed = inputMag > 0.65 ? 7.0 : 3.3 * (inputMag / 0.65);
+              targetVx = nx * speed; targetVz = nz * speed;
+
+              let diff = Math.atan2(nx, nz) - playerState.yaw;
+              while (diff > Math.PI) diff -= Math.PI * 2;
+              while (diff < -Math.PI) diff += Math.PI * 2;
+              playerState.yaw += diff * (1 - Math.exp(-12 * dt));
+            }
+
+            const vBlend = 1 - Math.exp(-11 * dt);
+            playerState.vx = THREE.MathUtils.lerp(playerState.vx, targetVx, vBlend);
+            playerState.vz = THREE.MathUtils.lerp(playerState.vz, targetVz, vBlend);
+            const curSpeed = Math.hypot(playerState.vx, playerState.vz);
+            if (curSpeed > 4.6) animState = 'run';
+            else if (curSpeed > 0.35) animState = 'walk';
+
+            const rx = resolveCollisions(playerState.x + playerState.vx * dt, playerState.z);
+            playerState.x = rx.x;
+            const rz = resolveCollisions(playerState.x, playerState.z + playerState.vz * dt);
+            playerState.z = rz.z;
+
+            const floorY = getGroundHeight(playerState.x, playerState.z);
+            playerState.vy -= 18.5 * dt;
+            playerState.y += playerState.vy * dt;
+            if (playerState.y <= floorY) { playerState.y = floorY; playerState.vy = 0; playerState.isGrounded = true; }
+            else { playerState.isGrounded = false; animState = 'jump'; }
+          }
+
+          if (playerState.punchTimer > 0) playerState.punchTimer = Math.max(0, playerState.punchTimer - dt * 3.4);
+
+          playerRig.wrapper.position.set(playerState.x, playerState.y, playerState.z);
+          playerRig.wrapper.rotation.y = playerState.yaw;
+          updatePlayerPose(playerRig, animState, dt, elapsed, playerState.punchTimer, playerState.punchCombo, teaSipAmt);
+
+          // হাতের আঙুলের মাঝে চায়ের কাপ বসানো
+          if (worldTeaCup.visible && playerRig.bones.RightHand) {
+            playerRig.wrapper.updateMatrixWorld(true);
+            playerRig.bones.RightHand.getWorldPosition(_vHand);
+            if (playerRig.bones.RightHandMiddle1) {
+              playerRig.bones.RightHandMiddle1.getWorldPosition(_vMid);
+              _vHand.lerp(_vMid, 0.55);
+            }
+            worldTeaCup.position.set(_vHand.x, _vHand.y, _vHand.z);
+            worldTeaCup.rotation.y = playerState.yaw;
+          }
+        }
+
+        const indoor = !playerState.drivingCar && isInsideHome(playerState.x, playerState.z);
+        homeRoofGroup.visible = !indoor;
+
+        const desiredDist = playerState.drivingCar ? 6.5 : (playerState.isSitting ? 2.15 : (indoor ? 2.65 : 4.6));
+        const tCamX = playerState.x - Math.sin(camYaw) * Math.cos(camPitch) * desiredDist;
+        const tCamY = playerState.y + (playerState.drivingCar ? 1.9 : 1.45) + Math.sin(camPitch) * desiredDist;
+        const tCamZ = playerState.z - Math.cos(camYaw) * Math.cos(camPitch) * desiredDist;
+
+        _vCamPos.set(tCamX, Math.max(0.55, indoor ? Math.min(3.15, tCamY) : tCamY), tCamZ);
+        camera.position.lerp(_vCamPos, 1 - Math.exp(-10 * dt));
+
+        _vCamTarget.set(playerState.x, playerState.y + (playerState.drivingCar ? 1.0 : (playerState.isSitting ? 0.95 : 1.32)), playerState.z);
+        curCamTarget.lerp(_vCamTarget, 1 - Math.exp(-14 * dt));
+        camera.lookAt(curCamTarget);
+      }
+
+      for (const ped of pedestrians) {
+        const pt = ped.pts[ped.targetIdx];
+        const dx = pt[0] - ped.x, dz = pt[1] - ped.z, dist = Math.hypot(dx, dz);
+        if (dist < 0.6) ped.targetIdx = (ped.targetIdx + 1) % ped.pts.length;
+        else {
+          let diff = Math.atan2(dx, dz) - ped.yaw;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          ped.yaw += diff * (1 - Math.exp(-6 * dt));
+          ped.x += (dx / dist) * ped.speed * dt;
+          ped.z += (dz / dist) * ped.speed * dt;
+        }
+        ped.npc.root.position.set(ped.x, 0.05, ped.z);
+        ped.npc.root.rotation.y = ped.yaw;
+        animateSimpleHuman(ped.npc, 'walk', dt, elapsed);
+      }
+
+      const safeHome = !playerState.drivingCar && isInsideHome(playerState.x, playerState.z);
+      for (const t of thugs) {
+        if (!isNight) { t.npc.root.visible = false; t.x = t.homeX; t.z = t.homeZ; t.hp = 100; continue; }
+        if (t.hp <= 0) continue;
+        t.npc.root.visible = true;
+
+        if (Math.hypot(t.knockbackVx, t.knockbackVz) > 0.2) {
+          const r = resolveCollisions(t.x + t.knockbackVx * dt, t.z + t.knockbackVz * dt, 0.36);
+          t.x = r.x; t.z = r.z;
+          t.knockbackVx *= Math.exp(-6.5 * dt); t.knockbackVz *= Math.exp(-6.5 * dt);
+        }
+        if (t.stunTimer > 0) {
+          t.stunTimer -= dt;
+          t.npc.root.position.set(t.x, 0, t.z);
+          animateSimpleHuman(t.npc, 'idle', dt, elapsed);
+          continue;
+        }
+        if (t.attackCooldown > 0) t.attackCooldown -= dt;
+
+        const dx = playerState.x - t.x, dz = playerState.z - t.z, dist = Math.hypot(dx, dz);
+        let tMode = 'idle';
+        if (!safeHome && !playerState.isSleeping && !playerState.drivingCar && dist < 34) {
+          t.yaw = Math.atan2(dx, dz);
+          if (dist > 1.35) {
+            const sp = dist > 8 ? 4.8 : 3.6;
+            tMode = dist > 8 ? 'run' : 'walk';
+            const r = resolveCollisions(t.x + (dx / dist) * sp * dt, t.z + (dz / dist) * sp * dt, 0.36);
+            if (!isInsideHome(r.x, r.z)) { t.x = r.x; t.z = r.z; }
+          } else if (t.attackCooldown <= 0) {
+            t.attackCooldown = 1.45;
+            playerState.hp -= 18;
+            triggerDamageFlash();
+            if (playerState.isSitting) standUpFromTeaStall();
+            if (wardrobeState !== 'closed') closeWardrobe();
+            const k = resolveCollisions(playerState.x + (dx / dist) * 0.65, playerState.z + (dz / dist) * 0.65);
+            playerState.x = k.x; playerState.z = k.z;
+            if (playerState.hp <= 0) startSleepSequence();
+          }
+        } else {
+          const hdx = t.homeX - t.x, hdz = t.homeZ - t.z, hd = Math.hypot(hdx, hdz);
+          if (hd > 1.5) { t.yaw = Math.atan2(hdx, hdz); t.x += (hdx / hd) * 2.2 * dt; t.z += (hdz / hd) * 2.2 * dt; tMode = 'walk'; }
+        }
+        t.npc.root.position.set(t.x, 0, t.z);
+        t.npc.root.rotation.y = t.yaw;
+        animateSimpleHuman(t.npc, tMode, dt, elapsed);
+      }
+
+      renderer.render(scene, camera);
+    }
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    animate();
+  </script>
+</body>
+</html>
